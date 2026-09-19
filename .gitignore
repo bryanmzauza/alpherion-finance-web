@@ -1,0 +1,44 @@
+# Segredos — nunca commitar
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.age
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+.pnpm-store/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# Dados baixados pelo worker (fixtures pequenas ficam em tests/fixtures/)
+apps/api/.cache/
+apps/api/data/downloads/
+
+# Editor / SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs e temporários
+*.log
+tmp/
