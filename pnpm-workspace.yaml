@@ -1,0 +1,7 @@
+packages:
+  - "apps/*"
+
+# Scripts de instalação (pnpm ≥ 10 bloqueia por padrão). Revisar antes de aprovar um novo.
+allowBuilds:
+  esbuild: true
+  unrs-resolver: false

@@ -32,13 +32,16 @@ SemVer, uma tag para `web` e `api`. Marcos: `v0.1.0` Fase 0 no ar · `v0.2.0` da
 
 ## Rodando localmente
 
-Ainda não há código de produto (Etapa 0). A Etapa 1 do plano cria `pnpm-workspace.yaml`, `apps/web`, `apps/api` e `infra/compose.dev.yml`; quando existir, o fluxo será:
+Um único `.env` na raiz do repo, lido pelo web, pela API e pelo compose.
 
 ```
-cp infra/env/.env.example .env            # preencher
-docker compose -f infra/compose.dev.yml up -d
-pnpm install && pnpm dev                  # web
-cd apps/api && uv run uvicorn alpherion.main:app --reload   # api
+cp infra/env/.env.example .env                                   # preencher (valores de dev)
+docker compose --env-file .env -f infra/compose.dev.yml up -d    # postgres (schemas app/market), redis, mailpit
+pnpm install && pnpm dev                                         # web em http://localhost:3000 (/design só em dev)
+cd apps/api && uv sync && uv run alembic upgrade head            # deps da API + schema market
+cd apps/api && uv run uvicorn alpherion.main:app --reload        # api → GET /v1/health
 ```
 
-Pré-requisitos: Node 22 (20 funciona), pnpm (`corepack enable`), Python 3.12+, Docker.
+Checagens: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (raiz) · `uv run ruff check . && uv run mypy . && uv run pytest` (em `apps/api`). O CI (`.github/workflows/ci.yml`) roda as mesmas mais `pnpm audit` e `pip-audit`.
+
+Pré-requisitos: Node 22 (20 funciona), pnpm (`corepack enable`, ou `npm i -g pnpm`), [uv](https://docs.astral.sh/uv/) (baixa o Python 3.12 sozinho), Docker. No Windows, rode o uvicorn sempre com `--reload` (o psycopg assíncrono não funciona no `ProactorEventLoop`) e use `127.0.0.1` nas URLs do `.env`.

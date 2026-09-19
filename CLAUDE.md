@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado atual
 
-Monorepo do Alpherion Finance (site `alpherion.com.br`, app `app.alpherion.com.br`, API `api.alpherion.com.br`). **Ainda não há código de produto** — só a Etapa 0 (estrutura + documentação) está feita. Antes de criar qualquer coisa, leia nesta ordem:
+Monorepo do Alpherion Finance (site `alpherion.com.br`, app `app.alpherion.com.br`, API `api.alpherion.com.br`). **Ainda não há feature de produto** — Etapa 0 (estrutura + docs) e Etapa 1 (fundação técnica: workspace, `apps/web`, `apps/api`, compose dev, CI) estão feitas. Antes de criar qualquer coisa, leia nesta ordem:
 
 1. `docs/plano-de-desenvolvimento.md` — a ordem de execução é fixa; trabalhe na etapa aberta, marque os checkboxes no commit da entrega.
 2. `docs/site.md` — especificação completa (rotas §2, arquitetura §3, modelo de dados §4, design §5, IA §6, segurança §7, conformidade §8). Referencie seções por `§`.
@@ -14,20 +14,25 @@ Se o `site.md` e o `docs/roadmap.md` conflitarem, o roadmap manda (exceto onde e
 
 Idioma do repositório: **pt-BR** em docs, commits, UI e narrativa. Código (identificadores) em inglês.
 
-## Comandos (previstos pela Etapa 1 do plano — ainda não existem)
+## Comandos
+
+Um único `.env` na **raiz** (`cp infra/env/.env.example .env`); web, api e compose leem dele. Rodar da raiz do repo.
 
 ```
-docker compose -f infra/compose.dev.yml up -d            # postgres 16 (schemas app/market), redis, mailpit
-pnpm install && pnpm dev                                 # apps/web (Next.js 15, App Router)
-pnpm lint && pnpm typecheck && pnpm test && pnpm build   # raiz do workspace
-cd apps/api && uv run uvicorn alpherion.main:app --reload
+docker compose --env-file .env -f infra/compose.dev.yml up -d   # postgres 16 (schemas app/market), redis, mailpit
+pnpm install && pnpm dev                                 # apps/web (Next.js 16, App Router) em :3000; /design só em dev
+pnpm lint && pnpm typecheck && pnpm test && pnpm build   # raiz do workspace (typecheck roda `next typegen` antes do tsc)
+cd apps/api && uv sync                                   # cria .venv com Python 3.12
+cd apps/api && uv run uvicorn alpherion.main:app --reload --port 8001   # API; --reload é obrigatório no Windows (ver abaixo)
+cd apps/api && uv run alembic upgrade head               # migra o schema market (usuário `data`, DATA_DATABASE_URL)
 cd apps/api && uv run pytest tests/test_engine_golden.py -k concentration   # um teste
-cd apps/api && uv run ruff check . && uv run mypy .
-cd apps/api && python -m alpherion.data.jobs.<job>       # rodar um job do worker à mão
-infra/scripts/backfill-market.sh --sample                # subconjunto do schema market para dev
+cd apps/api && uv run ruff check . && uv run ruff format --check . && uv run mypy .
+cd apps/api && uv run python -m alpherion.data.jobs.<job>   # rodar um job do worker à mão (Etapa 3)
+infra/scripts/backfill-market.sh --sample                # subconjunto do schema market para dev (Etapa 3)
+docker build -f apps/web/Dockerfile .  ·  docker build apps/api   # imagens (web usa a raiz como contexto)
 ```
 
-`pnpm` não está instalado na máquina: `corepack enable`. Ao criar esses comandos na Etapa 1, atualize esta seção.
+Particularidades da máquina do Bryan (Windows): outro projeto ocupa as portas 5432 e 8000, por isso o `.env` local usa Postgres em `5433` e a API em `8001`; usar `127.0.0.1` (não `localhost`) nas URLs do `.env`, porque o Docker só publica em IPv4; o psycopg assíncrono não roda no `ProactorEventLoop`, e o uvicorn só usa o `SelectorEventLoop` com `--reload`. `pnpm` foi instalado com `npm i -g pnpm` (o `corepack enable` exige shell de administrador); `uv` via winget.
 
 ## Arquitetura (o que não dá para ver olhando um arquivo só)
 

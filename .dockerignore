@@ -1,0 +1,11 @@
+# Contexto do build do web é a raiz do monorepo.
+**/node_modules
+**/.next
+**/.venv
+**/__pycache__
+apps/api
+docs
+infra
+.github
+.env
+.env.*

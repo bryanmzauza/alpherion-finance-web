@@ -1,0 +1,20 @@
+import type { Metadata } from "next";
+import { inter, playfair } from "./fonts";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Alpherion Finance",
+    template: "%s · Alpherion Finance",
+  },
+  description:
+    "O Alpherion lê a sua carteira — cripto, ações, FIIs, renda fixa — e devolve cinco leituras de risco, em português. Não diz o que comprar.",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR" className={`${playfair.variable} ${inter.variable} h-full`}>
+      <body className="flex min-h-full flex-col">{children}</body>
+    </html>
+  );
+}

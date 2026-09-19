@@ -1,0 +1,57 @@
+# Dependências locais (site.md §10, ambiente `dev`). web e api rodam fora do compose
+# (`pnpm dev`, `uvicorn --reload`). Portas só em 127.0.0.1.
+#
+#   docker compose --env-file .env -f infra/compose.dev.yml up -d   (da raiz do repo)
+#
+# `--env-file .env` faz a interpolação (${...}) ler o .env da raiz; `env_file` entrega as
+# mesmas variáveis ao container do Postgres para o init.sh.
+
+name: alpherion-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file: ../.env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?defina POSTGRES_SUPERUSER_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-alpherion}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+      - ./postgres/init.sql:/opt/alpherion/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:-alpherion}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?defina REDIS_PASSWORD no .env}", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:8025:8025" # UI
+      - "127.0.0.1:1025:1025" # SMTP
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+
+volumes:
+  postgres-data:
+  redis-data:
