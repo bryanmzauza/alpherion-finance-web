@@ -65,10 +65,16 @@ h2 {
   line-height: var(--text-h2--line-height);
 }
 
-/* Números tabulares em tabelas e indicadores (§5) */
+/* Números tabulares em tabelas e indicadores (§5); Playfair traz algarismos antigos por padrão */
 table,
 .tabular {
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+h1,
+h2,
+.font-display {
+  font-variant-numeric: lining-nums;
 }
 
 :focus-visible {

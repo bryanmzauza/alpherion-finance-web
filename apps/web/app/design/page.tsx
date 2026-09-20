@@ -1,4 +1,12 @@
 import { notFound } from "next/navigation";
+import { ReadingCard } from "@/components/site/reading-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Disclaimer } from "@/components/ui/disclaimer";
+import { Input } from "@/components/ui/input";
+import { Tooltip } from "@/components/ui/tooltip";
+import { READINGS } from "@/content/site";
 
 // Guia de estilo dos tokens do §5. Só existe em dev (site.md §5: "rota só em dev").
 const colors = [
@@ -71,6 +79,37 @@ export default function DesignPage() {
             <p className="text-table text-ice-70">Número de destaque · Playfair Display 700 · dourado</p>
             <p className="tabular mt-1 font-display text-5xl font-bold text-gold">38%</p>
           </div>
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2>Componentes</h2>
+        <div className="mt-6 space-y-8 rounded-lg border border-navy-3 bg-navy-2 p-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button>Primário</Button>
+            <Button variant="secondary">Secundário</Button>
+            <Button variant="ghost">Ghost</Button>
+            <Button disabled>Desabilitado</Button>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input placeholder="seu@email.com" aria-label="Exemplo de input" />
+            <Checkbox id="design-check" label="Checkbox nunca pré-marcado, com label associado." />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge>neutro</Badge>
+            <Badge tone="gold">dourado</Badge>
+            <Badge tone="ok">✓ ok</Badge>
+            <Badge tone="warn">● atenção</Badge>
+            <Badge tone="risk">▲ risco</Badge>
+          </div>
+          <p className="text-ice-70">
+            Termo com definição:{" "}
+            <Tooltip content="A maior queda do topo ao fundo em um período.">drawdown</Tooltip> (hover, foco ou toque; Esc fecha).
+          </p>
+          <div className="max-w-sm">
+            <ReadingCard reading={READINGS[3]!} />
+          </div>
+          <Disclaimer />
         </div>
       </section>
 

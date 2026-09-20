@@ -1,0 +1,26 @@
+[
+  {
+    "id": "01",
+    "quadro": "leitura",
+    "title": "Leitura de Mercado #01 — O Fed subiu, o Copom cortou. E agora?",
+    "gold": "CORTOU",
+    "youtubeId": null,
+    "publishedAt": null
+  },
+  {
+    "id": "02",
+    "quadro": "raio-x",
+    "title": "Raio-X de uma carteira real: 11 ativos, 3 riscos que o dono não via",
+    "gold": "RAIO-X",
+    "youtubeId": null,
+    "publishedAt": null
+  },
+  {
+    "id": "03",
+    "quadro": "tese",
+    "title": "Chega de dica de ativo. A tese por trás do Alpherion.",
+    "gold": "TESE",
+    "youtubeId": null,
+    "publishedAt": null
+  }
+]

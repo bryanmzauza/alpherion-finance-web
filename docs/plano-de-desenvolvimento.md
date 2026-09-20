@@ -62,17 +62,17 @@ Meta: no ar antes do vídeo 1 (21/09). SSG/ISR, zero cookie no site público.
 
 ### 2.1 Componentes base (`components/ui/`)
 
-- [ ] `Button`, `Input`, `Checkbox`, `Card`, `Badge`, `Table`, `Tooltip`, `Disclaimer`, `EmailCapture`, `VideoEmbed` (youtube-nocookie, carrega no clique), `Gold` (regra da palavra dourada)
-- [ ] Foco visível, `aria-*`, contraste AA (dourado só em texto grande)
+- [X] `Button`, `Input`, `Checkbox`, `Card`, `Badge`, `Table`, `Tooltip`, `Disclaimer`, `EmailCapture`, `VideoEmbed` (youtube-nocookie, carrega no clique), `Gold` (regra da palavra dourada)
+- [X] Foco visível, `aria-*`, contraste AA (dourado só em texto grande)
 
 ### 2.2 Páginas (`app/(site)/`)
 
-- [ ] `/` com as 10 seções do §5, na ordem
-- [ ] `/raio-x` (cinco leituras com os números do vídeo 02: 38% · 0,91 · 0,96 · −34% · 0,03%)
-- [ ] `/sobre`, `/contato`, `/videos` (ISR sobre `content/videos.json`)
-- [ ] `/privacidade`, `/termos`, `/aviso-legal` em MDX (`content/legal/`) com `version` e `date` no frontmatter
-- [ ] `not-found.tsx`; placeholders do §13 centralizados em `content/site.ts`
-- [ ] Imagens da marca em `public/brand/` (copiar de `alpherion-finance-yt/brand/imagens/`)
+- [X] `/` com as 10 seções do §5, na ordem
+- [X] `/raio-x` (cinco leituras com os números do vídeo 02: 38% · 0,91 · 0,96 · −34% · 0,03%)
+- [X] `/sobre`, `/contato`, `/videos` (ISR sobre `content/videos.json`)
+- [X] `/privacidade`, `/termos`, `/aviso-legal` em MDX (`content/legal/`) com `version` e `date` no frontmatter
+- [X] `not-found.tsx`; placeholders do §13 centralizados em `content/site.ts`
+- [X] Imagens da marca em `public/brand/` (copiar de `alpherion-finance-yt/brand/imagens/`)
 
 ### 2.3 Lista de e-mail
 

@@ -1,0 +1,73 @@
+---
+title: Política de Privacidade
+version: "1.0"
+date: "2026-09-19"
+---
+
+import { EMAILS, LEGAL_ENTITY } from "@/content/site";
+
+Esta política explica, em linguagem simples, quais dados o Alpherion Finance coleta, para quê, com que base legal, por quanto tempo e com quem compartilha. Ela segue a Lei Geral de Proteção de Dados (Lei 13.709/2018, "LGPD") e o Marco Civil da Internet (Lei 12.965/2014).
+
+## 1. Quem é o controlador
+
+**{LEGAL_ENTITY.razaoSocial}**, CNPJ {LEGAL_ENTITY.cnpj}, com sede em {LEGAL_ENTITY.endereco}, {LEGAL_ENTITY.cidadeUf} ("Alpherion", "nós").
+
+**Encarregado de dados (canal de atendimento, LGPD art. 41):** <a href={`mailto:${EMAILS.privacidade}`}>{EMAILS.privacidade}</a>. Respondemos pedidos em até 15 dias.
+
+## 2. Quais dados tratamos, para quê e por quanto tempo
+
+| Dado | Finalidade | Base legal (LGPD art. 7) | Retenção |
+| --- | --- | --- | --- |
+| **E-mail da lista** e prova de consentimento (data, IP, navegador, versão desta política) | Enviar a Leitura de Mercado e avisos do Alpherion; comprovar que você consentiu | Consentimento (art. 7, I), com confirmação por e-mail (double opt-in) | Até você sair da lista. Depois, um resumo criptográfico (hash) do e-mail fica numa lista de supressão para não reenviarmos, e a prova do consentimento é mantida por 5 anos (art. 7, VI) |
+| **Conta no app** (e-mail, nome opcional), carteira, movimentações, proventos e análises | Prestar o serviço de leitura de carteira | Execução de contrato (art. 7, V) | Enquanto a conta existir. Exclusão definitiva 7 dias após o pedido |
+| **Arquivos importados** (CSV, extratos da Área do Investidor da B3) | Ler posições e movimentações | Execução de contrato (art. 7, V) | **Não são armazenados.** São lidos na hora e descartados; CPF e nome contidos neles são ignorados na leitura. Fica só um identificador do arquivo (hash) e a contagem de linhas, por 12 meses, para evitar importação duplicada |
+| **Registros de acesso** (IP, data e hora) | Cumprir o art. 15 do Marco Civil da Internet | Obrigação legal (art. 7, II) | 6 meses, apagados automaticamente |
+| **Logs de segurança** (login, exportação, exclusão, importação) | Detectar e responder a incidentes | Legítimo interesse (art. 7, IX) | 12 meses |
+| **Backups** | Recuperação em caso de falha | As mesmas bases dos dados originais | 30 dias rotativos e cifrados. Uma exclusão de conta "expira" do backup em até 30 dias |
+
+O que **não** coletamos: CPF, senha de corretora, dados de cartão, localização precisa. Nome é opcional. Não há publicidade nem rastreamento de terceiros.
+
+## 3. Cookies
+
+O site público (`alpherion.com.br`) **não usa cookies**. As estatísticas de audiência são feitas com Umami, uma ferramenta hospedada por nós que não usa cookie, não identifica pessoas e anonimiza o endereço IP. Os vídeos do YouTube só carregam quando você clica, e pelo domínio `youtube-nocookie.com`.
+
+O aplicativo (`app.alpherion.com.br`) usa **um único cookie de sessão**, estritamente necessário para você permanecer conectado. Pelo Guia de Cookies da ANPD, cookies necessários não exigem consentimento, e por isso não há banner.
+
+## 4. Com quem compartilhamos
+
+Não vendemos nem cedemos dados pessoais. Usamos os seguintes operadores, que tratam dados em nosso nome e sob contrato:
+
+| Operador | O que recebe | Onde | Por quê |
+| --- | --- | --- | --- |
+| Cloudflare | Endereço IP e tráfego de rede | Exterior (rede global) | Proteção e entrega do site |
+| Provedor de e-mail transacional e de lista | Seu endereço de e-mail e o conteúdo dos e-mails que enviamos | Brasil ou exterior, conforme o provedor contratado (indicado na versão publicada desta política) | Enviar confirmações, a Leitura de Mercado e avisos |
+| Anthropic (Claude) | Números agregados e **pseudonimizados** da carteira (pesos, correlações, sem e-mail, nome, quantidades ou preços) | Exterior | Escrever a narrativa da análise em português |
+| Google | Seu e-mail, **somente se você escolher entrar com Google** | Exterior | Login |
+| Provedor de armazenamento de backup | Cópias cifradas do banco de dados | Indicado na versão publicada desta política | Recuperação em caso de falha |
+| Provedor de hospedagem (VPS) | Todos os dados, cifrados em repouso onde aplicável | Indicado na versão publicada desta política | Hospedar o site e o app |
+
+Fontes de dados de mercado (CVM, B3, Tesouro Nacional, Banco Central, CoinGecko) recebem apenas requisições dos nossos servidores, sem nenhum dado seu.
+
+**Transferência internacional (LGPD art. 33):** quando um operador está fora do Brasil, a transferência se baseia em cláusulas contratuais padrão (Resolução CD/ANPD nº 19/2024) ou no acordo de tratamento de dados do provedor, sempre com o mínimo de dados necessário.
+
+## 5. Seus direitos (LGPD art. 18)
+
+Você pode, a qualquer momento: confirmar se tratamos seus dados; acessá-los; corrigi-los; pedir anonimização, bloqueio ou eliminação; pedir portabilidade; saber com quem compartilhamos; e revogar consentimentos.
+
+- **Lista de e-mail:** o link de descadastro em qualquer e-mail sai da lista na hora, sem login e sem confirmação.
+- **App:** em "Conta" você exporta todos os seus dados (JSON), revoga consentimentos, encerra sessões e exclui a conta.
+- **Fora do app:** escreva para <a href={`mailto:${EMAILS.privacidade}`}>{EMAILS.privacidade}</a>. Registramos e respondemos em até 15 dias.
+
+Se entender que seus direitos não foram atendidos, você pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD).
+
+## 6. Segurança
+
+Dados financeiros pessoais (movimentações, posições e análises) são cifrados na aplicação antes de ir ao banco. O acesso é segregado por serviço, os backups são cifrados antes de sair do servidor e mantemos registro de auditoria das ações sensíveis. Em caso de incidente com risco relevante, comunicaremos a ANPD e você nos prazos da lei.
+
+## 7. Menores de idade
+
+O site e o app destinam-se a maiores de 18 anos. Não coletamos intencionalmente dados de menores.
+
+## 8. Mudanças nesta política
+
+Cada versão tem número e data (no topo desta página). Mudanças relevantes são avisadas por e-mail a quem está na lista ou tem conta. Ao aceitar os Termos ou entrar na lista, registramos a versão vigente.
