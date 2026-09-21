@@ -4,6 +4,9 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versioname
 
 ## [Unreleased]
 
+### Alterado
+- Plano de desenvolvimento **v2.0** — paridade funcional com o Status Invest ([ADR-018](docs/adr/ADR-018-paridade-status-invest.md)): v1.0 adiado de 25/09 para **09/10/2026** e dividido em quatro tags (`v0.2.0` pipeline + páginas, `v0.3.0` portal, `v0.4.0` carteira/B3, `v1.0.0` análise). `docs/site.md` ganha o portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição e comunicados CVM (v1.0); calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento (v1.x); imposto de renda (Fase 1); internacional com provedor licenciado (Fase 2, ADR-019 pendente). Fontes, tabelas, endpoints e módulos (§14) correspondentes. Roadmap sincronizado com a fonte (`alpherion-finance-yt`).
+
 ### Adicionado
 - Estrutura do monorepo (`apps/`, `infra/`, `docs/`, `.github/`).
 - `docs/site.md` (especificação), `docs/brand-kit.md`, `docs/roadmap.md` (cópia de referência).
@@ -20,3 +23,8 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versioname
   - `components/ui/` (`Button`, `Input`, `Checkbox`, `Card`, `Badge`, `Table`, `Tooltip`, `Disclaimer`, `EmailCapture`, `VideoEmbed`, `Gold`) e `components/site/` (`Header`, `Footer`, `Section`, `Faq`, `ReadingCard`, `ReadingPreview`, `VideoCard`/`QuadroCard`, `LegalPage`, `SkipLink`); galeria em `/design` (dev).
   - Páginas `/`, `/raio-x`, `/sobre`, `/contato`, `/videos`, `/privacidade`, `/termos`, `/aviso-legal` e 404. Conteúdo e placeholders (§13) centralizados em `content/site.ts`; vídeos em `content/videos.json` (cards dos quadros até haver `youtubeId`).
   - Textos legais em MDX (`content/legal/*.mdx`, `version` 1.0) — **rascunhos para revisão jurídica**. Imagens da marca em `public/brand/`, ícones gerados do monograma.
+- Etapa 2.3 — lista de e-mail:
+  - Primeira migration Drizzle do schema `app` (`consents`, `data_requests`; tabela de controle em `app.__drizzle_migrations`).
+  - `POST /api/subscribe` (zod, honeypot, verificação de Origin, rate limit 10/min/IP no Redis) → Listmonk (assinante não confirmado + e-mail de confirmação pela API transacional) → prova em `consents` (hash do e-mail, versão da política, IP, user-agent, `source=landing`).
+  - `/lista/obrigado`, `/lista/confirmar?t=`, `/lista/sair?t=` (descadastro em 1 clique). Eventos Umami `subscribe_submit`/`subscribe_confirm`; `Analytics` só quando `UMAMI_*` configurado.
+  - Listmonk e Umami (perfil `analytics`) no `compose.dev.yml` com bancos próprios; `infra/scripts/listmonk-setup.py` (lista, usuário de API, templates, settings); `docs/runbooks/listmonk.md`.

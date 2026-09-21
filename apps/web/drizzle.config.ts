@@ -9,6 +9,8 @@ export default defineConfig({
   schema: "./drizzle/schema/index.ts",
   out: "./drizzle/migrations",
   schemaFilter: ["app"],
+  // O usuário `web` só tem direitos no schema app (§7.6): a tabela de controle fica lá, não em `drizzle`.
+  migrations: { schema: "app", table: "__drizzle_migrations" },
   dbCredentials: {
     url: process.env.DATABASE_URL ?? "",
   },

@@ -23,6 +23,8 @@ docker compose --env-file .env -f infra/compose.dev.yml up -d   # postgres 16 (s
 pnpm install && pnpm dev                                 # apps/web (Next.js 16, App Router) em :3000; /design só em dev
 pnpm lint && pnpm typecheck && pnpm test && pnpm build   # raiz do workspace (typecheck roda `next typegen` antes do tsc)
 cd apps/api && uv sync                                   # cria .venv com Python 3.12
+pnpm --filter web db:generate && pnpm --filter web db:migrate   # migrations Drizzle do schema app (usuário web)
+python infra/scripts/listmonk-setup.py --smtp-mailpit    # 1ª vez: lista, usuário de API e templates do Listmonk (:9000)
 cd apps/api && uv run uvicorn alpherion.main:app --reload --port 8001   # API; --reload é obrigatório no Windows (ver abaixo)
 cd apps/api && uv run alembic upgrade head               # migra o schema market (usuário `data`, DATA_DATABASE_URL)
 cd apps/api && uv run pytest tests/test_engine_golden.py -k concentration   # um teste

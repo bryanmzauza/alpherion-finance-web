@@ -1,6 +1,6 @@
 # Alpherion Finance — Roadmap
 
-> Última atualização: 17/09/2026
+> Última atualização: 20/09/2026
 > Responsável: brmz
 > **Cópia de referência.** A fonte canônica é `alpherion-finance-yt/docs/roadmap.md`; edite lá e sincronize aqui.
 
@@ -54,9 +54,11 @@ Calibrar o prompt do Alpherion para entregar **leitura de risco**, não **ordem 
 
 ---
 
-## 3. Sprint de lançamento — 14 dias
+## 3. Sprint de lançamento — 20 dias (20/09 → 09/10)
 
 Formato do canal: **tela + voz** no início, rosto entra depois. Cada vídeo com compartilhamento de tela vira demo do produto — conteúdo, prova de valor e tutorial no mesmo take.
+
+> **Nota de 20/09/2026:** o sprint passou de 14 para 20 dias para caber o **portal de dados de mercado** (ver §4). A Fase 0 e o vídeo 1 não mudam; o app abre no vídeo 3 em **09/10**.
 
 ### Dias 1–2 · Marca
 
@@ -70,32 +72,43 @@ Formato do canal: **tela + voz** no início, rosto entra depois. Cada vídeo com
 - [ ] Canal criado, banner, descrição com CTA para o site
 - [X] Roteiros dos 3 primeiros vídeos (ver [youtube/roteiros/](../youtube/roteiros/)):
   - **V1 — formato âncora:** leitura semanal de mercado feita pelo agente. Recorrente, ~70% automatizável, cria hábito de audiência.
-  - **V2 — produto:** a análise de carteira funcionando.
+  - **V2 — produto:** o portal de dados e a análise de carteira funcionando.
   - **V3 — tese/opinião:** dá cara ao projeto.
 
-### Dias 5–7 · Gravação e landing
+### Dias 5–7 · Gravação e landing (até 21/09)
 
 - [ ] Gravar V1 e V2 na mesma sessão (**sempre gravar em lote**)
-- [ ] Landing no ar: captura de e-mail + prévia da análise
+- [X] Landing no ar: captura de e-mail + prévia da análise
 - [ ] Já dá para citar o site nos vídeos
 
-### Dia 8 · Publica V1
+### Dia 8 · Publica V1 (21/09) → `v0.1.0`
 
 - [ ] CTA: entrar na lista
 
-### Dias 9–13 · App
+### Dias 8–13 · Pipeline e páginas de ativo (até 28/09) → `v0.2.0`
+
+- [ ] Schema `market`, jobs sobre CVM/B3/Tesouro/BCB/CoinGecko, backfill em produção
+- [ ] Páginas de ações, FIIs, ETFs, BDRs, índices (com composição), Tesouro e cripto — todo número com fonte
+
+### Dias 13–17 · Portal (até 02/10) → `v0.3.0`
+
+- [ ] Header com faixa (Ibov, IFIX, dólar, CDI, BTC) e busca global em todo o site
+- [ ] `/mercado` (Hoje / Eventos), `/agenda`, `/setores`, comunicados CVM por empresa
+- [ ] **V2 publica em 02/10:** demo do portal + raio-x com carteira ilustrativa
+
+### Dias 17–20 · App (até 09/10) → `v0.4.0`, `v1.0.0`
 
 - [ ] Next.js na VPS, Postgres, auth
+- [ ] Carteira: manual, CSV, importação dos arquivos da Área do Investidor da B3
 - [ ] API do Alpherion como serviço de análise
-- [ ] V2 publica no dia 11
 
-### Dia 14 · App aberto
+### Dia 20 · App aberto (09/10)
 
 - [ ] V3 é a demo: usando o produto recém-aberto
 
 ---
 
-## 4. Escopo do v1 do app (o que cabe em 7 dias)
+## 4. Escopo do v1 (app + portal)
 
 **Dentro:**
 
@@ -116,7 +129,9 @@ Formato do canal: **tela + voz** no início, rosto entra depois. Cada vídeo com
 
 > Tudo que não for **conteúdo, cadastro ou análise de carteira** está fora do escopo.
 
-> **Nota de 19/09/2026:** o escopo do v1 foi ampliado. Entram **páginas de ativos com cotação, histórico, proventos e indicadores** (ações, FIIs, Tesouro, cripto — fontes oficiais: CVM, B3, Tesouro, BCB, CoinGecko) e **importação da carteira a partir dos arquivos da Área do Investidor da B3** (o CEI não existe mais; integração oficial da B3 fica para a Fase 1). A regra passa a ser: *conteúdo, cadastro, carteira (incl. B3), análise e dados de mercado*. Detalhe, ordem de execução e divisão v1.0 / v1.x em [site.md §11](site.md#11-fases-alinhadas-ao-roadmap-com-a-nota-de-19092026).
+> **Nota de 19/09/2026:** o escopo do v1 foi ampliado. Entram **páginas de ativos com cotação, histórico, proventos e indicadores** (ações, FIIs, Tesouro, cripto — fontes oficiais: CVM, B3, Tesouro, BCB, CoinGecko) e **importação da carteira a partir dos arquivos da Área do Investidor da B3** (o CEI não existe mais; integração oficial da B3 fica para a Fase 1).
+
+> **Nota de 20/09/2026 (ADR-018):** o site público passa a ter **paridade funcional com o Status Invest em dado público e ferramentas de carteira**, mantendo o raio-x como diferencial. **v1.0 (09/10):** portal de mercado (busca global, faixa de índices, `/mercado` com Hoje/Eventos, `/agenda`, `/setores`), páginas de ações, FIIs, **ETFs, BDRs, índices com composição**, Tesouro e cripto, comunicados CVM por empresa, carteira/B3, análise. **v1.x (semanas 4–12):** screener completo, calendário de proventos da carteira, favoritos, ITR, evolução e rentabilidade × CDI/Ibov/IPCA, glossário, alertas, comparador, informes de FII, **fundos de investimento (CVM)**, leitura semanal. **Fase 1:** B3 oficial + **imposto de renda (DARF)**. **Fase 2:** pagamento + **internacional** (só com provedor licenciado). O que **nunca** entra: nota/score, "melhores ações", preço justo, ranking editorial, notícias. A regra passa a ser: *conteúdo, cadastro, carteira (incl. B3), análise e portal de dados*. Detalhe, ordem de execução e divisão v1.0 / v1.x em [site.md §11](site.md#11-fases-alinhadas-ao-roadmap-com-as-notas-de-1909-e-20092026); execução em `plano-de-desenvolvimento.md` (v2.0) do repositório de desenvolvimento.
 
 ---
 
@@ -129,10 +144,13 @@ Formato do canal: **tela + voz** no início, rosto entra depois. Cada vídeo com
 - Cripto entra por API de exchange/wallet (fácil)
 - B3 entra pela **integração oficial da B3** (usuário autoriza na Área do Investidor; exige contrato com a B3) — a importação dos arquivos da Área do Investidor já está no v1
 - Nota de corretagem e CSV como complemento
+- **Imposto de renda** (apuração mensal, DARF, relatório anual) e alertas por Telegram — o que o Status Invest cobra
 - Free generoso, paywall no relatório com IA
 
-### Fase 2 · meses 3–9 — CNPI e research pago
+### Fase 2 · meses 3–9 — Monetização, CNPI e research pago
 
+- Pagamento, `/planos`, paywall (relatório com IA, IR, alertas, comparador, histórico longo)
+- **Internacional** (stocks, REITs) só com provedor de dados licenciado e receita para pagá-lo (ADR-019)
 - Estudar em paralelo com a Fase 1
 - Provas CB + CG1 (Apimec) → credenciamento pessoa natural
 - Credenciamento da PJ depois
@@ -153,7 +171,7 @@ Formato do canal: **tela + voz** no início, rosto entra depois. Cada vídeo com
 - **App:** Next.js + Postgres
 - **Auth:** provedor pronto
 - **Analytics:** Plausible ou Umami self-hosted
-- **Dados:** free tier até doer; migrar quando houver receita
+- **Dados:** fontes oficiais gratuitas (CVM, B3, Tesouro, BCB, CoinGecko) em pipeline próprio; provedor pago só para internacional, na Fase 2
 - **Faturamento:** conteúdo e publicidade pela ME de serviços (consultoria só na Fase 3, em PJ registrada)
 
 ### Princípio de arquitetura
@@ -170,13 +188,14 @@ Formato do canal: **tela + voz** no início, rosto entra depois. Cada vídeo com
 | YouTube não automatiza bem — é o gargalo real de tempo       | Gravação em lote, formato âncora repetível               |
 | Produto encostar na fronteira regulatória                      | Diagnóstico ≠ recomendação. Disclaimer. Cripto primeiro. |
 | Audiência sem captura de e-mail                                | Captura desde o vídeo 1, sem exceção                      |
-| Custo de market data escalar antes da receita                   | Free tier até doer                                          |
+| Custo de market data escalar antes da receita                   | Fontes oficiais gratuitas; internacional só na Fase 2        |
+| Portal de dados vira o produto e a leitura fica para trás       | O raio-x é o CTA de toda página de ativo; métrica: página de ativo → conta |
 
 ---
 
 ## 8. Métricas por fase
 
 - **Fase 0:** e-mails capturados, inscritos, retenção média dos vídeos
-- **Fase 1:** carteiras conectadas, análises geradas/usuário, retorno em 7 dias
+- **Fase 1:** carteiras conectadas, análises geradas/usuário, retorno em 7 dias, sessões recorrentes no portal (`/mercado`, `/agenda`), buscas globais, conversão página de ativo → conta
 - **Fase 2:** conversão free → pago, churn mensal
 - **Fase 3:** clientes de consultoria, receita por cliente

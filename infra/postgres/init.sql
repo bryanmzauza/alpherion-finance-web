@@ -14,6 +14,9 @@ CREATE SCHEMA market AUTHORIZATION :"data_user";
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON DATABASE :"DBNAME" FROM PUBLIC;
 GRANT CONNECT ON DATABASE :"DBNAME" TO :"web_user", :"api_user", :"data_user";
+-- O migrator do Drizzle roda CREATE SCHEMA IF NOT EXISTS "app" antes de cada migration,
+-- e o Postgres checa CREATE no banco antes do IF NOT EXISTS. Só o web recebe esse direito.
+GRANT CREATE ON DATABASE :"DBNAME" TO :"web_user";
 
 -- api: só leitura em market, inclusive nas tabelas que o data criar depois.
 GRANT USAGE ON SCHEMA market TO :"api_user";
@@ -24,3 +27,11 @@ ALTER ROLE :"api_user" SET statement_timeout = '5s';
 ALTER ROLE :"web_user"  SET search_path = app;
 ALTER ROLE :"api_user"  SET search_path = market;
 ALTER ROLE :"data_user" SET search_path = market;
+
+-- Bancos próprios (§7.6): listmonk e umami não tocam o banco da aplicação.
+CREATE ROLE listmonk LOGIN PASSWORD :'listmonk_password';
+CREATE ROLE umami    LOGIN PASSWORD :'umami_password';
+CREATE DATABASE listmonk OWNER listmonk;
+CREATE DATABASE umami    OWNER umami;
+REVOKE ALL ON DATABASE listmonk FROM PUBLIC;
+REVOKE ALL ON DATABASE umami    FROM PUBLIC;

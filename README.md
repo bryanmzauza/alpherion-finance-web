@@ -39,9 +39,13 @@ cp infra/env/.env.example .env                                   # preencher (va
 docker compose --env-file .env -f infra/compose.dev.yml up -d    # postgres (schemas app/market), redis, mailpit
 pnpm install && pnpm dev                                         # web em http://localhost:3000 (/design só em dev)
 cd apps/api && uv sync && uv run alembic upgrade head            # deps da API + schema market
+pnpm --filter web db:migrate                                     # schema app (Drizzle)
+python infra/scripts/listmonk-setup.py --smtp-mailpit            # lista de e-mail (1ª vez; cole a saída no .env)
 cd apps/api && uv run uvicorn alpherion.main:app --reload        # api → GET /v1/health
 ```
 
 Checagens: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (raiz) · `uv run ruff check . && uv run mypy . && uv run pytest` (em `apps/api`). O CI (`.github/workflows/ci.yml`) roda as mesmas mais `pnpm audit` e `pip-audit`.
+
+Aviso de hidratação com `bis_skin_checked="1"` no console do `next dev`: é uma extensão de navegador (Bitdefender TrafficLight) alterando o DOM antes do React; não é bug do site. Teste em janela anônima ou desative a extensão em `localhost`.
 
 Pré-requisitos: Node 22 (20 funciona), pnpm (`corepack enable`, ou `npm i -g pnpm`), [uv](https://docs.astral.sh/uv/) (baixa o Python 3.12 sozinho), Docker. No Windows, rode o uvicorn sempre com `--reload` (o psycopg assíncrono não funciona no `ProactorEventLoop`) e use `127.0.0.1` nas URLs do `.env`.

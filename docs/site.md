@@ -1,7 +1,7 @@
 # alpherion.com.br — Especificação do site e do app
 
-> Última atualização: 19/09/2026
-> Escopo: site público (landing + conteúdo + dados de mercado), app (consolidador + conexão B3 + análise) e a API única do Alpherion.
+> Última atualização: 20/09/2026 (v2 — portal de mercado e paridade funcional com o Status Invest, ADR-018)
+> Escopo: site público (landing + conteúdo + portal de dados de mercado), app (consolidador + conexão B3 + análise + ferramentas de carteira) e a API única do Alpherion.
 > Este documento é a referência para o repositório de desenvolvimento. O que está aqui e não está no [roadmap](roadmap.md) é detalhe de implementação; se os dois conflitarem, o roadmap manda — exceto onde o roadmap tem nota datada remetendo a este documento.
 > Novos módulos entram seguindo a convenção da §14.
 
@@ -23,7 +23,7 @@
 | Infra | VPS própria, Ubuntu 24.04 LTS, Docker Compose, nginx, Cloudflare na frente. Backups criptografados diários fora da VPS |
 | Analytics | Umami self-hosted, sem cookie, sem banner |
 | Conformidade | LGPD (consentimento com prova, direitos do titular no app, ROPA, plano de incidente), Marco Civil (logs 6 meses), CVM (disclaimer + guardrail no LLM + páginas de dados sem opinião de valor), CDC/Decreto 7.962 (identificação do fornecedor, arrependimento 7 dias no pago), LBI (WCAG 2.1 AA), termos de uso das fontes de dados |
-| Escopo do v1 | **v1.0 (lançamento, dia 14):** landing + lista · cadastro · carteira manual/CSV/**importação B3** · análise · **páginas de ativos** (ações, FIIs, Tesouro, cripto) com cotação, histórico, proventos e indicadores. **v1.x (semanas 3–8):** screener completo, demonstrações trimestrais, comparador, evolução patrimonial, informes de FII. Detalhe na §11 |
+| Escopo do v1 | **v1.0 (lançamento, 09/10/2026):** landing + lista · **portal de mercado** (busca global, faixa de índices no header, `/mercado` com Hoje/Eventos, `/agenda`, `/setores`) · **páginas de ativos** de ações, FIIs, **ETFs, BDRs, índices**, Tesouro e cripto (cotação, histórico, proventos, indicadores, comunicados CVM) · cadastro · carteira manual/CSV/**importação B3** · análise. **v1.x (semanas 4–12):** screener completo, calendário de proventos da carteira, favoritos, ITR, evolução + rentabilidade × benchmarks, glossário, alertas, comparador, informes de FII, **fundos de investimento (CVM)**, leitura semanal. **Fase 1:** B3 oficial + **imposto de renda**. **Fase 2:** pagamento + **internacional** (provedor licenciado). Detalhe na §11; o que entra e o que nunca entra está no ADR-018 |
 
 ---
 
@@ -34,8 +34,9 @@ O site tem três públicos:
 1. **Visitante vindo do YouTube.** Quer entender "o que é o Alpherion" em 20 segundos e decidir se entra na lista. → **Landing**: promessa, as cinco leituras, o que não faz, captura de e-mail.
 2. **Visitante orgânico** que chega pela página de um ativo (busca "PETR4 dividendos", "MXRF11 P/VP"). Quer o dado. → **Página do ativo**: número, fonte, data — e um CTA contextual: "Tem [TICKER] na carteira? Veja o que ele faz no seu risco." É o motor de SEO e a porta de entrada que não depende do canal.
 3. **Usuário cadastrado.** Quer colocar a carteira (à mão, CSV ou arquivos da B3) e apertar o botão. → **App**: fluxo curto, sem distração.
+4. **Visitante recorrente** que usa o site como consulta diária (faixa de índices, busca de ticker, agenda de proventos e eventos, setores). É o público do Status Invest; ele volta pelo dado e conhece a leitura pelo CTA de cada página. → **Portal** (`/mercado`, `/agenda`, busca global no header).
 
-**Métricas:** Fase 0 — e-mails confirmados. Fase 1 — carteiras com pelo menos uma análise; visitas orgânicas em páginas de ativo; conversão página de ativo → conta.
+**Métricas:** Fase 0 — e-mails confirmados. Fase 1 — carteiras com pelo menos uma análise; visitas orgânicas em páginas de ativo; conversão página de ativo → conta; sessões recorrentes em `/mercado` e `/agenda`; buscas globais por sessão.
 
 ### Regras herdadas do canal que valem para o site
 
@@ -72,23 +73,40 @@ O site tem três públicos:
 | `/planos` | Planos e preços | Só na Fase 2, com pagamento | SSG | 2 |
 | `/sitemap.xml` · `/robots.txt` · `/manifest.webmanifest` | Técnicas | Geradas pelo Next; sitemap segmentado (`/sitemap/acoes.xml` etc.) | — | 0 |
 
+#### Header do site público (todas as páginas de `alpherion.com.br`)
+
+- **`MarketStrip`** — faixa com Ibovespa · IFIX · dólar (PTAX) · CDI 12 m · BTC (valor, variação do dia, hora da fonte). Server component lendo `GET /v1/market/strip` com revalidação de 300 s; se a API não responder, a faixa mostra "—" e a página continua estática. Zero JS no cliente.
+- **`GlobalSearch`** — busca de ações, FIIs, ETFs, BDRs, índices, títulos do Tesouro, criptoativos e (v1.x) fundos. Client component carregado **no foco** do campo (não entra no JS inicial da landing); chama `app/api/market/search` (route handler com rate limit por IP) → `GET /v1/assets/search`. Enter sem seleção → `/busca?q=`.
+- **Menu**: Ações · FIIs · ETFs · BDRs · Índices · Tesouro · Cripto · Setores · Agenda · Raio-X · Vídeos. No app, o header é o do app (§2.2).
+- Regras: zero cookie (§8.5), orçamento de JS da landing mantido (§9), números tabulares, variação com sinal + cor semântica (§5).
+
 #### Dados de mercado (todas ISR; revalidação após o fechamento do dia, cripto a cada hora)
 
 | Rota | Página | O que mostra | Fase |
 | --- | --- | --- | --- |
-| `/mercado` | Visão geral | Ibovespa, dólar (PTAX), Selic/CDI/IPCA, BTC em BRL, maiores altas/baixas do dia (fato, com volume), agenda da semana (Copom, FOMC, IPCA, vencimentos). Fonte e horário em cada bloco | v1.0 |
+| `/mercado` | Portal de mercado | **Faixa completa:** Ibovespa, IFIX, IDIV, SMLL, dólar (PTAX), Selic, CDI 12 m, IPCA 12 m, BTC em BRL. **Blocos por classe** com contadores factuais e link: ações (nº de empresas listadas, nº de setores), FIIs (nº de fundos, nº de segmentos), ETFs, BDRs, índices, Tesouro (nº de títulos), cripto (nº acompanhados). **Tab Hoje:** maiores altas, maiores baixas e mais negociadas por volume financeiro — cada lista com a métrica no título e filtro de liquidez mínima. **Tab Eventos:** data-com e pagamentos do dia/semana, comunicados relevantes do dia (CVM), agenda macro (Copom, IPCA, FOMC, vencimento de opções). Busca global em destaque. Fonte e horário em cada bloco | v1.0 |
+| `/busca?q=` | Resultado da busca global | Resultados agrupados por classe (ações, FIIs, ETFs, BDRs, índices, Tesouro, cripto, fundos), com cotação e link. SSR, `noindex` | v1.0 |
 | `/acoes` | Lista / screener de ações | Tabela de todas as ações e units da B3 (BDRs e ETFs entram no catálogo como "outros" sem página própria no v1). Filtros: setor/subsetor, liquidez, P/L, P/VP, DY, ROE, dív. líq./EBITDA, market cap. Ordenação escolhida pelo usuário; padrão = liquidez. Sem "recomendado" | v1.0 básico (lista + busca) · v1.x filtros |
-| `/acoes/[ticker]` | Página da ação | **Cabeçalho:** cotação, variação do dia, mín/máx 52 s, volume, market cap, fonte e data. **Gráfico:** 1M · 6M · 1A · 5A · máx, ajustado por proventos e eventos. **Indicadores** (tooltip + fonte): valuation — P/L, P/VP, EV/EBITDA, EV/EBIT, PSR, DY 12m, payout; rentabilidade — ROE, ROIC, ROA, margem bruta/EBITDA/líquida; endividamento — dív. líq./EBITDA, dív. líq./PL, liquidez corrente; crescimento — receita e lucro (CAGR 5a); por ação — LPA, VPA. **Demonstrações:** DRE, balanço e fluxo de caixa resumidos, anual (DFP) e trimestral (ITR), toggle. **Proventos:** tabela (tipo, data-com, pagamento, valor por ação) e gráfico por ano. **Eventos:** desdobramentos, grupamentos, bonificações, subscrições. **Cadastro:** razão social, CNPJ, setor/subsetor/segmento B3, segmento de listagem, free float, tag along, site de RI. **CTA:** "Tem [TICKER] na carteira?" → app | v1.0 (cotação, histórico, proventos, indicadores de valuation e rentabilidade a partir da DFP) · v1.x (trimestral, fluxo de caixa, crescimento) |
+| `/acoes/[ticker]` | Página da ação | **Cabeçalho:** cotação, variação do dia, mín/máx 52 s, volume, market cap, fonte e data. **Gráfico:** 1M · 6M · 1A · 5A · máx, ajustado por proventos e eventos. **Indicadores** (tooltip + fonte): valuation — P/L, P/VP, EV/EBITDA, EV/EBIT, PSR, DY 12m, payout; rentabilidade — ROE, ROIC, ROA, margem bruta/EBITDA/líquida; endividamento — dív. líq./EBITDA, dív. líq./PL, liquidez corrente; crescimento — receita e lucro (CAGR 5a); por ação — LPA, VPA. **Demonstrações:** DRE, balanço e fluxo de caixa resumidos, anual (DFP) e trimestral (ITR), toggle. **Proventos:** tabela (tipo, data-com, pagamento, valor por ação) e gráfico por ano. **Eventos:** desdobramentos, grupamentos, bonificações, subscrições **e próximos data-com/pagamentos** anunciados. **Comunicados:** fatos relevantes, comunicados ao mercado, avisos aos acionistas e calendário de eventos corporativos entregues à CVM (título, categoria, data, link para o documento na CVM — sem resumo nem opinião). **Cadastro:** razão social, CNPJ, setor/subsetor/segmento B3, segmento de listagem, free float, tag along, site de RI. **Mesmo setor:** empresas do mesmo segmento B3 com cotação e liquidez (link para `/setores/[slug]`). **CTA:** "Tem [TICKER] na carteira?" → app | v1.0 (cotação, histórico, proventos, indicadores de valuation e rentabilidade a partir da DFP, eventos, comunicados, cadastro) · v1.x (trimestral, fluxo de caixa, crescimento, histórico de indicadores) |
 | `/fiis` | Lista / screener de FIIs | Filtros: segmento (tijolo/papel/híbrido/fof), DY 12m, P/VP, liquidez, patrimônio. Mesma regra de ordenação | v1.0 básico · v1.x filtros |
 | `/fiis/[ticker]` | Página do FII | Cotação, DY 12m, P/VP, patrimônio líquido e por cota, vacância física/financeira (quando informada), nº de cotistas, segmento, gestor/administrador, taxa de administração, rendimentos mensais (tabela + gráfico), informes mensais/trimestrais (link para o documento na CVM/B3), imóveis/ativos (quando no informe). CTA | v1.0 (cotação, DY, P/VP, rendimentos) · v1.x (informes, vacância, imóveis) |
 | `/tesouro` | Tesouro Direto | Tabela dos títulos disponíveis: nome, vencimento, taxa de compra, taxa de venda, preço unitário, atualizado em | v1.0 |
 | `/tesouro/[slug]` | Página do título | Histórico de taxa e preço, duration/vencimento, como funciona aquele indexador (uma frase), marcação a mercado explicada (link para o vídeo 09) | v1.0 |
 | `/cripto` | Criptoativos | Top N por market cap em BRL: preço, 24h, 7d, market cap, volume, dominância do BTC | v1.0 |
 | `/cripto/[id]` | Página do cripto | Preço em BRL e USD, histórico (1M–máx), market cap, volume, oferta circulante/máxima, ATH e distância do ATH, **correlação 30/90d com BTC, Ibovespa e dólar** (ponte com o Radar de risco do canal). CTA | v1.0 |
+| `/etfs` · `/etfs/[ticker]` | ETFs listados na B3 | Lista (nome, índice de referência, gestor, cotação, variação, volume, patrimônio quando informado) e página: cotação, histórico, volume, taxa de administração, índice replicado (link para `/indices/[slug]` quando houver), proventos (quando distribui). CTA | v1.0 |
+| `/bdrs` · `/bdrs/[ticker]` | BDRs | Lista (empresa, país, cotação, variação, volume) e página: cotação em BRL, histórico, volume, proventos, paridade (n BDRs por ação) e emissor/depositário. Sem dados fundamentalistas da empresa estrangeira no v1 (não há fonte oficial gratuita — §8.10) | v1.0 |
+| `/indices` · `/indices/[slug]` | Índices da B3 | Lista (Ibovespa, IFIX, IDIV, SMLL, IBRX 100, IBRA, IFNC, IMOB, UTIL…) com valor, variação do dia/mês/ano. Página: histórico, **composição da carteira teórica** (ticker, participação %, quantidade teórica, data da carteira), setores mais representados como fato agregado, link para cada ativo. Sem previsão | v1.0 |
+| `/setores` · `/setores/[slug]` | Setores e segmentos | Árvore setor → subsetor → segmento da classificação B3 e segmentos de FII (tijolo/papel/híbrido/fof). Página do setor: empresas/fundos com cotação, variação, liquidez, P/L, P/VP, DY 12 m, market cap; ordenação escolhida pelo usuário, padrão liquidez; agregados factuais (nº de empresas, market cap somado). Links internos em toda página de ativo | v1.0 |
+| `/agenda` · `/agenda/[ano]-[semana]` | Agenda de eventos | Calendário semanal (e mensal) com: proventos (data-com, pagamento, valor por ação, tipo), comunicados relevantes entregues à CVM (por dia), eventos macro (Copom, IPCA, IGP-M, PTAX, FOMC, vencimento de opções e índices — de `content/agenda-macro.json`, com fonte). Filtros por classe e tipo; página do dia por âncora. Só fatos com data e fonte | v1.0 |
+| `/fundos` · `/fundos/[slug]` | Fundos de investimento (CVM) | Lista com busca (nome, CNPJ, classe CVM, gestor) e página: cota do dia, patrimônio líquido, nº de cotistas, rentabilidade mês/ano/12 m/24 m como fato com a série ao lado, taxa de administração/performance, classe, público-alvo, gestor/administrador, histórico da cota. Slug = CNPJ numérico. Sem "melhores fundos" nem estrelas | v1.x |
+| `/internacional` | Stocks e REITs | Só com provedor licenciado (ADR-019); entra na Fase 2 com o paywall. Até lá a rota **não existe** (sem "em breve") | Fase 2 |
 | `/indicadores` · `/indicadores/[slug]` | Glossário de indicadores | Um por página: definição em uma frase, fórmula, de onde vem o dado, como o canal lê, limitações. É o destino dos tooltips | v1.x (v1.0 só tooltips) |
 | `/comparar?a=&b=&c=` | Comparador | 2–4 ativos da mesma classe lado a lado: indicadores, proventos, histórico normalizado. Só fatos; sem veredito, sem "vencedor" | v1.x |
 
-**Redirecionamentos:** `www.` → apex (301). `/entrar`, `/cadastro`, `/carteira` no domínio público → `app.alpherion.com.br`. Ticker em minúsculas → maiúsculas (301). Ticker inexistente → 404 com busca.
+**Rankings:** não existe rota "ranking". Listas ordenadas são (a) as tabs de `/mercado` (altas, baixas, volume) e (b) **presets do screener por URL** (`/acoes?sort=dy_12m&dir=desc`, `/fiis?sort=pvp&dir=asc`), sempre com a métrica no título ("Maior dividend yield 12 m") e nunca com juízo ("melhores", "baratas", "oportunidades"). Regra da §8.10.
+
+**Redirecionamentos:** `www.` → apex (301). `/entrar`, `/cadastro`, `/carteira` no domínio público → `app.alpherion.com.br`. Ticker em minúsculas → maiúsculas (301). Ticker inexistente → 404 com busca. `/acoes/[ticker]` de um ETF/BDR/FII → 301 para a rota da classe certa.
 
 ### 2.2 App — `app.alpherion.com.br`
 
@@ -104,6 +122,11 @@ O site tem três públicos:
 | `/carteira/movimentacoes` | Compras e vendas | Lista de transações (importadas ou manuais), edição, preço médio por ativo, custo total, taxas | v1.0 |
 | `/carteira/proventos` | Proventos recebidos | Dividendos, JCP e rendimentos por mês e por ativo; total 12m; **yield on cost** como fato | v1.0 |
 | `/carteira/evolucao` | Evolução | Patrimônio ao longo do tempo (a partir das movimentações + cotações históricas), aportes × valorização, comparação com CDI e Ibovespa como referência de fato (sem promessa) | v1.x |
+| `/carteira/rentabilidade` | Rentabilidade | Rentabilidade da carteira por **cotização** (TWR — independe do momento dos aportes) por mês, ano e 12 m, lado a lado com CDI, Ibovespa, IFIX e IPCA no mesmo período, por classe e por ativo. Fato histórico com fonte; sem projeção | v1.x |
+| `/carteira/calendario` | Calendário da carteira | Proventos **anunciados** dos ativos em carteira (data-com, pagamento, valor por ação × quantidade na data-com = valor estimado a receber), comunicados relevantes e eventos corporativos desses ativos, macro. Mês corrente + próximos; total estimado por mês | v1.x |
+| `/favoritos` | Lista de acompanhamento | Ativos marcados com ★ nas páginas públicas. Sem login: `localStorage` do navegador (não é cookie, não sai do dispositivo). Com login: tabela `watchlist_items`, sincronizada no primeiro acesso com aviso. Tabela com cotação, variação, DY, P/VP e link | v1.x |
+| `/conta/alertas` | Alertas | Por ativo: preço acima/abaixo de X, provento anunciado, comunicado relevante entregue. Canal: e-mail (Telegram na Fase 1). Limite por usuário; descadastro de cada alerta no próprio e-mail | v1.x |
+| `/carteira/ir` | Imposto de renda | Apuração **mensal** por classe a partir das movimentações: ações (isenção de vendas até R$ 20 mil/mês, 15 % / 20 % day trade), FIIs (20 %), ETFs, BDRs, cripto (isenção até R$ 35 mil/mês), prejuízo a compensar por classe, valor do DARF (código, vencimento) e relatório anual (bens e direitos com custo, rendimentos isentos/tributáveis). **É cálculo de fato pelas regras vigentes, com `tax_rules_version`; não é consultoria tributária** — disclaimer próprio e link para a fonte (RFB). Só quando há histórico completo de movimentações | Fase 1 |
 | `/analise/[id]` | Resultado | As cinco leituras em cards + texto do Alpherion em português + disclaimer fixo + "o que isso não é" | v1.0 |
 | `/analises` | Histórico | Lista de análises anteriores (data, carteira, resumo) | v1.0 |
 | `/conta` | Conta | E-mail, nome (opcional), sessões ativas, **exportar meus dados** (JSON), **excluir conta**, consentimentos | v1.0 |
@@ -125,25 +148,36 @@ Auth de todos os endpoints: token de serviço (`Authorization: Bearer`), um por 
 | `POST /v1/analyses` | Recebe `{positions: [{symbol, asset_class, quantity \| value_brl, avg_price?}], income_12m?, reference_date?, options}` → devolve as cinco leituras (JSON) + narrativa em pt-BR + `disclaimer` + `model_meta` | v1.0 |
 | `POST /v1/portfolios/valuation` | Posições/movimentações → valor atual, preço médio, resultado por ativo e total, peso. Usado por `/carteira` | v1.0 |
 | `POST /v1/portfolios/evolution` | Movimentações → série diária de patrimônio, aportes, valorização, CDI e Ibov no mesmo período | v1.x |
+| `POST /v1/portfolios/performance` | Movimentações → rentabilidade por cotização (TWR) por período, por classe e por ativo, com CDI, Ibovespa, IFIX e IPCA no mesmo período | v1.x |
+| `POST /v1/portfolios/income-calendar` | Posições → proventos anunciados (data-com futura ou pagamento futuro) × quantidade na data-com, comunicados e eventos dos ativos | v1.x |
+| `POST /v1/portfolios/tax` | Movimentações do ano → apuração mensal por classe, prejuízo a compensar, DARF, relatório anual. Regras versionadas (`tax_rules_version`) | Fase 1 |
 | `POST /v1/imports/csv/preview` | CSV genérico → linhas parseadas + erros por linha | v1.0 |
 | `POST /v1/imports/b3/preview` | Arquivos da Área do Investidor (xlsx/csv) → transações e proventos normalizados + avisos. **Descarta CPF/nome no parser** | v1.0 |
-| `GET /v1/assets/search?q=` | Busca no catálogo (autocomplete) | v1.0 |
+| `GET /v1/assets/search?q=&type=` | Busca global (autocomplete): ações, FIIs, ETFs, BDRs, índices, Tesouro, cripto e (v1.x) fundos; resultado agrupado por classe. Usada pelo header do site e pelo app | v1.0 |
 
 #### Dados de mercado
 
 | Método e rota | O que faz | Fase |
 | --- | --- | --- |
-| `GET /v1/market/overview` | Índices, câmbio, juros, inflação, BTC, altas/baixas do dia, agenda | v1.0 |
-| `GET /v1/securities?type=stock\|fii&filters…&sort=&page=` | Screener. Filtros e ordenação validados contra lista fechada de campos | v1.0 (busca/lista) · v1.x (filtros) |
+| `GET /v1/market/overview` | Índices, câmbio, juros, inflação, BTC, contadores por classe, altas/baixas/volume do dia, eventos do dia | v1.0 |
+| `GET /v1/market/strip` | Faixa do header: Ibovespa, IFIX, PTAX, CDI 12 m, BTC — resposta mínima, cache 5 min | v1.0 |
+| `GET /v1/market/movers?metric=change\|volume&dir=&type=&min_volume=` | Listas do dia ordenadas por uma métrica (fato); campos de lista fechada | v1.0 |
+| `GET /v1/market/events?from=&to=&kind=&type=&ticker=` | Agenda: proventos (data-com/pagamento), documentos CVM, macro. Base de `/agenda`, da tab Eventos e do calendário da carteira | v1.0 |
+| `GET /v1/sectors` · `GET /v1/sectors/{slug}?sort=&page=` | Árvore setor/subsetor/segmento (B3 e FII) e ativos do setor com cotação/indicadores | v1.0 |
+| `GET /v1/indices` · `GET /v1/indices/{slug}` · `/composition?date=` · `/history?range=` | Índices, carteira teórica (com data) e histórico | v1.0 |
+| `GET /v1/securities?type=stock\|fii\|etf\|bdr&filters…&sort=&page=` | Screener. Filtros e ordenação validados contra lista fechada de campos | v1.0 (busca/lista/presets de ordenação) · v1.x (filtros) |
 | `GET /v1/securities/{ticker}` | Perfil + indicadores atuais + cadastro + fonte/data de cada bloco | v1.0 |
 | `GET /v1/securities/{ticker}/history?range=&adjusted=` | OHLCV diário, ajustado ou não | v1.0 |
 | `GET /v1/securities/{ticker}/dividends` | Proventos e eventos corporativos | v1.0 |
+| `GET /v1/securities/{ticker}/events?from=` | Próximos data-com/pagamentos e eventos corporativos anunciados | v1.0 |
+| `GET /v1/securities/{ticker}/documents?category=&page=` | Comunicados entregues à CVM (IPE): categoria, assunto, data, link. Sem texto do documento | v1.0 |
 | `GET /v1/securities/{ticker}/financials?period=annual\|quarterly` | DRE/BP/FC resumidos | v1.0 anual · v1.x trimestral |
 | `GET /v1/securities/{ticker}/indicators/history` | Série dos indicadores (P/L, DY etc.) | v1.x |
 | `GET /v1/fiis/{ticker}/reports` | Informes mensais/trimestrais | v1.x |
 | `GET /v1/treasury` · `GET /v1/treasury/{slug}/history` | Títulos e histórico | v1.0 |
 | `GET /v1/crypto` · `GET /v1/crypto/{id}` · `/history` · `/correlations` | Cripto e correlações | v1.0 |
-| `GET /v1/compare?tickers=` | Comparador | v1.x |
+| `GET /v1/compare?tickers=` | Comparador (ações, FIIs, ETFs, BDRs, fundos — mesma classe) | v1.x |
+| `GET /v1/funds?q=&class=&sort=&page=` · `GET /v1/funds/{cnpj}` · `/history?range=` | Fundos de investimento (CVM): cadastro, cota, PL, cotistas, rentabilidade como fato | v1.x |
 | `GET /v1/quotes?symbols=` | Cotações atuais em BRL (cache) — usado pelo app | v1.0 |
 | `POST /v1/market/weekly-reading` | Números da Leitura de Mercado (mesmo cálculo do `leitura-semanal.py`) — interno | v1.0 |
 
@@ -290,8 +324,13 @@ alpherion/
 | **Tesouro Transparente** | Dados abertos do Tesouro Nacional | CSV diário (preços e taxas de compra/venda por título) | Diária | `treasury_bonds`, `treasury_daily` | Oficial e aberto |
 | **BCB SGS** (`api.bcb.gov.br`) | Séries temporais do Banco Central | JSON | Diária | Selic meta e efetiva, CDI, IPCA, IGP-M, PTAX | Oficial e aberto. Séries por código (documentar os códigos em `bcb.py`) |
 | **CoinGecko** (Demo, com chave) | Dados de cripto | JSON | Horária (preços/market cap), diária (histórico) | `crypto_metrics`, histórico em USD e BRL | Termos do plano Demo permitem uso com atribuição; conferir limites de requisição |
+| **B3 — carteiras teóricas de índices** | Composição dos índices (Ibovespa, IFIX, IDIV, SMLL, IBRX 100…) e valor de fechamento | CSV/JSON públicos do site da B3 (download da carteira teórica; valor do índice via COTAHIST/consulta) | Diária (carteira muda a cada quadrimestre, com prévias) | `indices`, `index_daily`, `index_compositions` | **Não documentado oficialmente**; mesma política de dados da B3 (§8.10). Fallback: manter a última carteira carregada e mostrar a data. Registrar em `data_sources` |
+| **CVM — IPE** (`dados.cvm.gov.br/dados/CIA_ABERTA/DOC/IPE/`) | Documentos periódicos e eventuais entregues pelas companhias (fato relevante, comunicado ao mercado, aviso aos acionistas, calendário de eventos, assembleias) | CSV por ano (metadados + link do documento) | Diária, incremental por data de entrega | `company_documents` | Dado aberto. Só metadados e link; **o texto do documento não é baixado nem resumido** (sem IA sobre comunicados) |
+| **CVM — Fundos** (`dados.cvm.gov.br/dados/FI/CAD/` e `FI/DOC/INF_DIARIO/`) | Cadastro de fundos e informe diário (cota, PL, captação, resgate, cotistas) | CSV mensal (cadastro) e mensal por dia (informe diário) | Diária, incremental | `funds`, `fund_daily` | Dado aberto. Volume grande (dezenas de milhares de fundos × dias): carga incremental, partição por ano. **v1.x** |
+| **Agenda macro** (`content/agenda-macro.json`) | Datas do Copom, IPCA/IPCA-15, IGP-M, FOMC, vencimentos de opções/índices | JSON no repositório, mantido à mão por ano a partir dos calendários oficiais (BCB, IBGE, FGV, Fed, B3) | Anual (revisão manual) | `market_events` (kind `macro`) | Cada item com `source_url`. Sem estimativa de resultado — só a data |
+| **Internacional** (stocks, REITs) | Cotações e cadastro de ativos dos EUA | Provedor licenciado — a definir no ADR-019 | — | `securities` com `market='us'` | **Fase 2.** Sem fonte oficial gratuita; entra só com contrato e receita |
 
-Jobs (todos idempotentes, com lock, registrando `etl_runs`): `cotahist_daily` (19h30, dias úteis) · `b3_listing` (diário) · `b3_corporate_actions` (diário) · `cvm_companies` (diário) · `cvm_statements` (diário; carga completa no bootstrap via `backfill-market.sh`) · `cvm_fii_reports` (diário) · `tesouro_daily` (diário) · `bcb_series` (diário) · `coingecko_prices` (horário) · `coingecko_history` (diário) · `adjust_factors` (após eventos) · `indicators_rebuild` (após tudo, calcula `indicators_daily`) · `revalidate_pages` (chama o endpoint de revalidação do Next para as páginas afetadas).
+Jobs (todos idempotentes, com lock, registrando `etl_runs`): `cotahist_daily` (19h30, dias úteis) · `b3_listing` (diário; inclui ETFs e BDRs) · `b3_corporate_actions` (diário) · `b3_index_composition` (diário; carteira teórica e fechamento dos índices) · `cvm_companies` (diário) · `cvm_statements` (diário; carga completa no bootstrap via `backfill-market.sh`) · `cvm_fii_reports` (diário) · `cvm_documents` (diário, incremental; IPE) · `cvm_funds` e `cvm_funds_daily` (diário; **v1.x**) · `tesouro_daily` (diário) · `bcb_series` (diário) · `coingecko_prices` (horário) · `coingecko_history` (diário) · `adjust_factors` (após eventos) · `indicators_rebuild` (após tudo, calcula `indicators_daily`) · `market_events_rebuild` (após proventos, documentos e agenda macro; materializa `market_events`) · `revalidate_pages` (chama o endpoint de revalidação do Next para as páginas afetadas, incluindo `/mercado`, `/agenda`, setores e índices).
 
 Fórmulas dos indicadores ficam em `transform/indicators.py`, documentadas em `/indicadores`, com testes contra casos calculados à mão. Qualquer indicador cuja entrada esteja faltando fica `null` e a página mostra "—" com o motivo no tooltip ("empresa não publicou DFP 2025"), nunca zero.
 
@@ -326,12 +365,15 @@ A lista de e-mail (`subscribers`, status, tokens de confirmação e de descadast
 | `assets` | `id, symbol, name, asset_class ('crypto','stablecoin','stock_br','bdr','etf_br','fii','fixed_income','treasury','other'), market_ref ('ticker'\|'coingecko_id'\|'treasury_slug'), currency, factor_map jsonb, active` | Catálogo do app; aponta para o schema `market` por `market_ref`. `factor_map` é o mapeamento ativo→fatores hoje hardcoded em `raio-x-carteira.py`; para ações vem do setor B3 por padrão |
 | `analyses` | `id, user_id, portfolio_id, reference_date, input_snapshot jsonb, readings jsonb, narrative jsonb, warnings jsonb, engine_version, prompt_version, llm_model, llm_tokens_in, llm_tokens_out, cost_usd, narrative_filtered bool, duration_ms, created_at` | `input_snapshot` congela a carteira (posições, preço médio, proventos 12m) no momento da análise. Retenção: enquanto a conta existir |
 | `analysis_feedback` | `id, analysis_id, rating (1–5), comment?, created_at` | v2. Único feedback loop de qualidade da narrativa |
+| `watchlist_items` | `id, user_id, asset_id, created_at` — unique (user_id, asset_id) | Favoritos com login (v1.x). Sem login, a lista fica em `localStorage` e nunca chega ao servidor |
+| `alerts` | `id, user_id, asset_id, kind ('price_above','price_below','income_announced','document'), threshold numeric?, channel ('email'), active bool, last_fired_at?, created_at` | v1.x. Avaliados por um job do `web` (o `data` não conhece usuários) que lê `/v1/quotes` e `/v1/market/events`; limite por usuário; cada e-mail traz link de desativação do alerta |
+| `tax_periods` | `id, user_id, portfolio_id, month, asset_class, gross_sales, result, loss_carry_in, loss_carry_out, tax_due, tax_rules_version, darf_generated_at?, created_at` | **Fase 1.** Resultado da apuração de IR (`POST /v1/portfolios/tax`), gravado para o relatório anual. Colunas financeiras cifradas como as demais (§7.4) |
 
 ### 4.3 Schema `market` — dados de mercado (dono: `api` + `data`)
 
 | Tabela | Campos principais | Notas |
 | --- | --- | --- |
-| `securities` | `ticker (pk), isin, cnpj, cvm_code, type ('stock','unit','bdr','etf','fii','fiagro'), company_name, trade_name, sector, subsector, segment, listing_segment, status, ri_url, updated_at` | Cadastro. Origem: B3 listagem + CVM |
+| `securities` | `ticker (pk), isin, cnpj, cvm_code, type ('stock','unit','bdr','etf','fii','fiagro'), market ('br' \| 'us' na Fase 2), company_name, trade_name, sector, subsector, segment, sector_slug, listing_segment, status, ri_url, etf_index_slug?, bdr_ratio?, updated_at` | Cadastro de todas as classes listadas (ações, units, ETFs, BDRs, FIIs, fiagros). Origem: B3 listagem + CVM. `sector_slug` alimenta `/setores` |
 | `daily_quotes` | `ticker, date, open, high, low, close, volume, trades, adj_factor` — pk (ticker, date), **particionada por ano** | Origem: COTAHIST. `adj_factor` acumulado calculado por `adjust_factors` |
 | `corporate_actions` | `id, ticker, kind ('dividend','jcp','fii_income','split','reverse_split','bonus','subscription'), ex_date, record_date, payment_date, value_per_share, ratio, source` | Proventos e eventos **anunciados** |
 | `financial_statements` | `cvm_code, period_end, period_type ('annual','quarterly'), statement ('dre','bp_ativo','bp_passivo','dfc'), consolidated bool, account_code, account_name, value, version` — pk composta | Formato longo, igual ao da CVM. `version` para republicação |
@@ -342,6 +384,13 @@ A lista de e-mail (`subscribers`, status, tokens de confirmação e de descadast
 | `treasury_daily` | `slug, date, buy_rate, sell_rate, buy_price, sell_price` | Origem: Tesouro Transparente |
 | `macro_series` | `series ('selic','cdi','ipca','igpm','ptax'), date, value` | Origem: BCB SGS |
 | `crypto_assets` · `crypto_daily` · `crypto_metrics` | id CoinGecko, símbolo, nome; preço USD/BRL, market cap, volume por dia; snapshot horário (preço, 24h, 7d, dominância, ATH) | |
+| `indices` | `slug (pk), b3_code, name, description, rebalance_note` | Ibovespa, IFIX, IDIV, SMLL, IBRX 100… |
+| `index_daily` | `slug, date, value, change_pct` — pk (slug, date) | Fechamento diário do índice |
+| `index_compositions` | `slug, date, ticker, weight, theoretical_qty` — pk (slug, date, ticker) | Carteira teórica vigente por data de carga; a página mostra a data |
+| `company_documents` | `id, cvm_code, ticker?, category, type, subject, delivered_at, reference_date?, url, protocol` — unique (protocol) | Origem: CVM IPE. Só metadados e link |
+| `funds` | `cnpj (pk), name, short_name, cvm_class, anbima_class?, manager, administrator, admin_fee, perf_fee, target_audience, status, started_at` | Origem: CVM cadastro. **v1.x** |
+| `fund_daily` | `cnpj, date, nav_per_share, total_nav, inflow, outflow, shareholders` — pk (cnpj, date), particionada por ano | Origem: CVM informe diário. **v1.x** |
+| `market_events` (view materializada) | `id, kind ('ex_date','payment','document','macro','corporate'), date, ticker?, cvm_code?, payload jsonb, source` | Une `corporate_actions`, `company_documents` e `content/agenda-macro.json`; base de `/agenda`, da tab Eventos e do calendário da carteira. Rebuild pelo job `market_events_rebuild` |
 | `etl_runs` | `id, job, period, started_at, finished_at, status, rows, error?` | Base do alerta de frescor |
 | `data_sources` | `source, url, license_note, terms_checked_at, last_loaded_at` | Registro das fontes e dos termos de uso (§8.10) |
 
@@ -365,6 +414,8 @@ A lista de e-mail (`subscribers`, status, tokens de confirmação e de descadast
 | Logs de auditoria de segurança | Legítimo interesse (IX) — segurança | 12 meses | Apagados; entradas ligadas a incidente podem ser retidas até o encerramento |
 | Dados fiscais / faturas (Fase 2) | Obrigação legal (II) | 5 anos | Apagados |
 | Backups | Mesmas bases dos dados originais | 30 dias rotativos | Sobrescritos; uma exclusão de conta "expira" do backup em até 30 dias — dizer isso na política |
+| Favoritos e alertas (v1.x) | Execução de contrato (V) | Enquanto a conta existir | Apagados com a conta; favoritos sem login nunca saem do navegador |
+| Apuração de IR (Fase 1) | Execução de contrato (V) | Enquanto a conta existir (o titular pode precisar por 5 anos — ele exporta) | Apagados com a conta |
 | Dados de mercado (schema `market`) | Não são dados pessoais | Indefinida | — |
 
 ---
@@ -385,7 +436,7 @@ A lista de e-mail (`subscribers`, status, tokens de confirmação e de descadast
 | Grid | Container 1120 px (1280 nas páginas de ativo e screener), gutter 16 px no mobile, 24 px desktop | Mobile-first: metade do tráfego do YouTube é celular; tabelas largas rolam horizontalmente dentro do card, nunca a página |
 | Componentes base | `Button`, `Input`, `Checkbox`, `Card`, `Badge`, `Table`, `Tooltip` (definição de termo), `Disclaimer`, `EmailCapture`, `VideoEmbed` (nocookie, lazy) | Documentar em `/design` (rota só em dev) |
 | Componentes de análise | `ReadingCard` (uma das cinco leituras), `CorrelationMatrix`, `DrawdownChart` | |
-| Componentes de mercado | `PriceHeader` (cotação, variação, 52 s, fonte/data), `HistoryChart` (linha/candles, períodos, ajustado on/off), `IndicatorGrid` (grupos: valuation / rentabilidade / endividamento / crescimento; cada célula com tooltip de definição + `SourceBadge`), `FinancialTable` (anual/trimestral, toggle, valores em milhões), `DividendTable` + `DividendChart`, `EventList`, `Screener` (filtros, tabela ordenável, paginação, URL com estado), `CompareTable`, `TreasuryTable`, `CryptoTable`, `SourceBadge` ("Fonte: CVM · DFP 2025 · atualizado em 18/09/2026"), `AssetCTA` ("Tem PETR4 na carteira?") | **Regra: nenhum número de mercado sem `SourceBadge`.** Valores ausentes mostram "—" com o motivo no tooltip |
+| Componentes de mercado | `PriceHeader` (cotação, variação, 52 s, fonte/data), `HistoryChart` (linha/candles, períodos, ajustado on/off), `IndicatorGrid` (grupos: valuation / rentabilidade / endividamento / crescimento; cada célula com tooltip de definição + `SourceBadge`), `FinancialTable` (anual/trimestral, toggle, valores em milhões), `DividendTable` + `DividendChart`, `EventList`, `Screener` (filtros, tabela ordenável, paginação, URL com estado), `CompareTable`, `TreasuryTable`, `CryptoTable`, `SourceBadge` ("Fonte: CVM · DFP 2025 · atualizado em 18/09/2026"), `AssetCTA` ("Tem PETR4 na carteira?"), `MarketStrip` (faixa do header), `GlobalSearch` (busca global, lazy), `MoversList` (altas/baixas/volume com a métrica no título), `EventCalendar` (agenda por dia/semana), `DocumentList` (comunicados CVM), `IndexCompositionTable`, `SectorTree`, `WatchStar` (favorito; `localStorage` sem login) | **Regra: nenhum número de mercado sem `SourceBadge`.** Valores ausentes mostram "—" com o motivo no tooltip. Listas ordenadas sempre com a métrica no título |
 | Modo claro | Não no v1. A marca é escura | `color-scheme: dark` declarado |
 | Regra da palavra dourada | Igual à thumbnail: em cada título, no máximo uma palavra em `--gold` | Ex.: "Você sabe o que **tem**?" |
 
@@ -562,6 +613,8 @@ Contato de incidente e de privacidade: `privacidade@alpherion.com.br` (mesmo can
   > As informações deste site e do aplicativo têm caráter educacional e informativo. Não constituem recomendação, consultoria, análise ou oferta de investimento, não consideram objetivos, situação financeira ou necessidades de qualquer pessoa e não indicam compra ou venda de nenhum ativo. O diagnóstico de carteira é uma leitura de risco baseada em dados históricos, que não garantem resultados futuros. Cotações, indicadores e demonstrações são obtidos de fontes públicas (CVM, B3, Tesouro Nacional, Banco Central, CoinGecko) e podem conter erros ou atrasos; confira sempre na fonte. Alpherion Finance e seus responsáveis não são analistas de valores mobiliários (Res. CVM 20) nem consultores de valores mobiliários (Res. CVM 19) credenciados pela CVM. Criptoativos são ativos de alto risco. Decisões de investimento são de exclusiva responsabilidade do usuário.
 
 - Quando vier o CNPI: campo em config para "Relatórios assinados por [nome], CNPI nº [x]" e uma segunda versão do aviso. Não antes.
+- **Comunicados CVM** (`/acoes/[ticker]` → Comunicados, `/agenda`): o site lista título, categoria, data e link para o documento na CVM. Não resume, não destaca, não comenta — resumo de fato relevante é interpretação.
+- **Imposto de renda** (`/carteira/ir`, Fase 1): cálculo aritmético a partir das regras publicadas pela Receita Federal, com a versão das regras gravada. Disclaimer próprio: "não é consultoria tributária; confira com um contador; a responsabilidade pela declaração é do contribuinte". Não é atividade privativa, mas o aviso evita expectativa de assessoria.
 - Sem depoimentos de rentabilidade, sem "resultados de usuários" com retorno financeiro.
 - Vídeo 15 (carteiras de inscritos): a página de envio, se existir, deixa claro que o resultado é agregado e anônimo e que **não haverá resposta individual**.
 
@@ -601,10 +654,12 @@ O site não custodia, não intermedeia, não converte criptoativos. Registrar is
 - **Termos de uso, a verificar e registrar em `docs/fontes-de-dados.md` antes do lançamento:**
   - **CVM Dados Abertos:** dados abertos do governo (Lei 12.527/2011 + política de dados abertos); uso e redistribuição livres com atribuição.
   - **Tesouro Transparente** e **BCB SGS:** dados abertos; uso livre com atribuição.
-  - **B3 (COTAHIST, listagem, eventos):** os arquivos são de download público, mas a B3 tem política própria de licenciamento de dados de mercado, especialmente para **redistribuição comercial** e dados em tempo real/atrasados. Ler a política vigente, guardar cópia, e, se a publicação de cotações históricas/EOD exigir licença ou contrato, **trocar a fonte das cotações por provedor licenciado (brapi)** antes de publicar — sem mudar o schema. Dados derivados das demonstrações (CVM) não dependem disso.
+  - **B3 (COTAHIST, listagem, eventos, carteiras teóricas de índices):** os arquivos são de download público, mas a B3 tem política própria de licenciamento de dados de mercado, especialmente para **redistribuição comercial** e dados em tempo real/atrasados. Ler a política vigente, guardar cópia, e, se a publicação de cotações históricas/EOD exigir licença ou contrato, **trocar a fonte das cotações por provedor licenciado (brapi)** antes de publicar — sem mudar o schema. Dados derivados das demonstrações (CVM) não dependem disso.
   - **CoinGecko:** termos do plano Demo (atribuição obrigatória "Dados por CoinGecko" e limites de requisição).
+  - **CVM IPE e CVM Fundos:** dados abertos (mesma política do item CVM); os documentos do IPE são linkados no site da CVM, não copiados.
+  - **Provedor internacional (Fase 2):** contrato comercial com direito de exibição (display) no site e no app; registrar em `data_sources` e no ADR-019 antes de qualquer página.
   - Nada de raspar Status Invest, Fundamentus, Investidor10 ou similares — nem para "conferir".
-- **Sem opinião de valor:** nenhuma página de ativo tem nota, score, ranking editorial, "compra/venda", "preço justo" ou preço-alvo. O screener ordena pelo que o usuário escolher; padrão neutro. Listas como "maiores altas do dia" são fato ordenado por um número, com a métrica no título.
+- **Sem opinião de valor:** nenhuma página de ativo tem nota, score, selo, ranking editorial, "compra/venda", "preço justo" (Graham, Bazin ou qualquer fórmula de valor intrínseco), preço-alvo ou "melhores". O screener ordena pelo que o usuário escolher; padrão neutro. Listas como "maiores altas do dia" ou presets de screener são fato ordenado por um número, com a métrica no título. Registrado no ADR-018.
 - **Correção de dados:** canal em `/contato` ("encontrei um erro no dado de X"); erro confirmado é corrigido na fonte do pipeline (nunca à mão no banco) e registrado em `etl_runs`.
 - **Propriedade intelectual das fórmulas:** os indicadores são calculados por fórmulas públicas documentadas em `/indicadores`; o dado bruto continua sendo da fonte e é atribuído.
 
@@ -642,52 +697,56 @@ O site não custodia, não intermedeia, não converte criptoativos. Registrar is
 
 ---
 
-## 11. Fases (alinhadas ao roadmap, com a nota de 19/09/2026)
+## 11. Fases (alinhadas ao roadmap, com as notas de 19/09 e 20/09/2026)
 
-> O roadmap original limitava o v1 a conteúdo, cadastro e análise, e dizia para não competir com o Status Invest em dado. Decisão de 19/09/2026: **dados de mercado e importação B3 entram no v1**, e a tese passa a ser "competir em dado (oficial, atribuído) **e** em leitura da carteira". O roadmap tem nota remetendo a esta seção. Ressalva registrada: é muito para 14 dias com uma pessoa — por isso o v1 é dividido em **v1.0** (o que precisa estar no ar no dia 14) e **v1.x** (semanas 3–8), sem tirar nada do escopo. Dentro do v1.0 a ordem é (1) pipeline + páginas de ativos, (2) importação B3, (3) o resto — porque as páginas são o que o vídeo pode mostrar e o que traz tráfego orgânico desde o primeiro dia.
+> O roadmap original limitava o v1 a conteúdo, cadastro e análise. Decisão de 19/09/2026: dados de mercado e importação B3 entram no v1 (ADR-014). Decisão de **20/09/2026 (ADR-018)**: o site público passa a ter **paridade funcional com o Status Invest em dado público e ferramentas de carteira** — portal de mercado (busca global, faixa, `/mercado` com Hoje/Eventos, `/agenda`, `/setores`), todas as classes listadas na B3 (ações, FIIs, ETFs, BDRs, índices) mais Tesouro e cripto, comunicados CVM; depois fundos, calendário, rentabilidade, favoritos, alertas; IR na Fase 1; internacional na Fase 2. O que **nunca** entra: nota/score, "melhores", preço justo, ranking editorial, notícias. Para caber, o **v1.0 foi adiado de 25/09 para 09/10/2026**; a Fase 0 não muda. Dentro do v1.0 a ordem é (1) pipeline + páginas de ativo, (2) portal, (3) carteira/B3, (4) análise e lançamento — porque as páginas e o portal são o que os vídeos mostram e o que traz tráfego orgânico desde o primeiro dia. O plano de execução com checklists e tags está em [plano-de-desenvolvimento.md](plano-de-desenvolvimento.md).
 
-### Fase 0 — Landing (dias 5–7 do sprint · antes do vídeo 1 em 21/09)
+### Fase 0 — Landing (dias 5–7 do sprint · antes do vídeo 1 em 21/09) → `v0.1.0`
 
 - [ ] Registro.br + Cloudflare + DNSSEC + SPF/DKIM/DMARC
 - [ ] VPS bootstrap (`bootstrap-vps.sh`): usuário, ufw (só Cloudflare), fail2ban, docker, unattended-upgrades, volume para `market`
-- [ ] `web` com `/`, `/raio-x`, `/sobre`, `/videos`, `/contato`, legais (`/privacidade`, `/termos`, `/aviso-legal`)
-- [ ] Listmonk + double opt-in + `/lista/*` + registro de consentimento
+- [X] `web` com `/`, `/raio-x`, `/sobre`, `/videos`, `/contato`, legais (`/privacidade`, `/termos`, `/aviso-legal`)
+- [X] Listmonk + double opt-in + `/lista/*` + registro de consentimento
 - [ ] Umami · Uptime Kuma · backup diário com restore testado uma vez
 - [ ] Headers A+, Lighthouse ≥ 95, WCAG básico
-- [ ] `docs/ropa.md` v1, `docs/incidente.md`, `docs/fontes-de-dados.md` (termos da B3 verificados — decide a fonte das cotações)
+- [ ] `docs/ropa.md` v1, `docs/incidente.md`, `docs/fontes-de-dados.md` (termos da B3 verificados, incluindo carteiras teóricas — decide a fonte das cotações)
 
-### v1.0 — App + dados (dias 8–14 · aberto no vídeo 3 em 25/09)
+### v1.0 — Portal + app (21/09 → 09/10 · aberto no vídeo 3 em 09/10)
 
-**Bloco 1 · pipeline e páginas de ativos**
-- [ ] Schema `market` + Alembic; jobs `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `cvm_companies`, `cvm_statements` (DFP anual), `tesouro_daily`, `bcb_series`, `coingecko_*`, `adjust_factors`, `indicators_rebuild`, `revalidate_pages`; `backfill-market.sh` rodado em produção
-- [ ] Endpoints `/v1/market/overview`, `/v1/securities*` (perfil, history, dividends, financials anual), `/v1/treasury*`, `/v1/crypto*`, `/v1/quotes`, `/v1/assets/search`
-- [ ] Páginas `/mercado`, `/acoes` (lista + busca), `/acoes/[ticker]` (cotação, histórico, proventos, indicadores de valuation e rentabilidade, DRE/BP anual, cadastro), `/fiis` (lista), `/fiis/[ticker]` (cotação, DY, P/VP, rendimentos), `/tesouro`, `/tesouro/[slug]`, `/cripto`, `/cripto/[id]`; tooltips de indicadores; `SourceBadge` em tudo; sitemaps; cache de borda
+**Bloco 1 · pipeline e páginas de ativo → `v0.2.0` (28/09)**
+- [ ] Schema `market` + Alembic (incl. `indices`, `index_daily`, `index_compositions`, `company_documents`, `market_events`); jobs `cotahist_daily`, `b3_listing` (ações, ETFs, BDRs), `b3_corporate_actions`, `b3_index_composition`, `cvm_companies`, `cvm_statements` (DFP anual), `cvm_fii_reports`, `cvm_documents`, `tesouro_daily`, `bcb_series`, `coingecko_*`, `adjust_factors`, `indicators_rebuild`, `market_events_rebuild`, `revalidate_pages`; `backfill-market.sh` rodado em produção
+- [ ] Endpoints `/v1/market/*` (overview, strip, movers, events), `/v1/securities*` (perfil, history, dividends, events, documents, financials anual), `/v1/sectors*`, `/v1/indices*`, `/v1/treasury*`, `/v1/crypto*`, `/v1/quotes`, `/v1/assets/search`
+- [ ] Páginas `/acoes` (lista + busca + presets), `/acoes/[ticker]` (cotação, histórico, proventos, indicadores, DRE/BP anual, eventos, comunicados, cadastro, mesmo setor), `/fiis`, `/fiis/[ticker]`, `/etfs`, `/etfs/[ticker]`, `/bdrs`, `/bdrs/[ticker]`, `/indices`, `/indices/[slug]`, `/tesouro`, `/tesouro/[slug]`, `/cripto`, `/cripto/[id]`; tooltips de indicadores; `SourceBadge` em tudo; sitemaps por classe; cache de borda
 - [ ] Alerta de frescor de dados
 
-**Bloco 2 · conexão B3**
-- [ ] Parsers dos arquivos da Área do Investidor (posição, negociações, proventos) com fixtures anonimizadas e descarte de CPF/nome; `/v1/imports/b3/preview`; `/carteira/importar/b3` com passo a passo e dedupe
-- [ ] `transactions`, `income_events`, `position_adjustments`, `positions` derivada; `/carteira` com preço médio e resultado; `/carteira/movimentacoes`; `/carteira/proventos`
+**Bloco 2 · portal de mercado → `v0.3.0` (02/10)**
+- [ ] Header do site público: `MarketStrip` + `GlobalSearch` (lazy) + menu novo; landing continua < 90 kB gzip e zero cookie
+- [ ] `/mercado` completo (faixa, blocos por classe, tabs Hoje/Eventos), `/agenda`, `/setores`, `/setores/[slug]`, `/busca`
+- [ ] `content/agenda-macro.json` do ano com fontes; JSON-LD `ItemList`/`Event`; `noindex` em `/busca` e presets
 
-**Bloco 3 · o resto do app**
+**Bloco 3 · conexão B3 e carteira → `v0.4.0` (06/10)**
 - [ ] Auth (magic link + Google), aceite de termos com prova
+- [ ] Parsers dos arquivos da Área do Investidor (posição, negociações, proventos) com fixtures anonimizadas e descarte de CPF/nome; `/v1/imports/b3/preview`; `/carteira/importar/b3` com passo a passo e dedupe
+- [ ] `transactions`, `income_events`, `position_adjustments`, `positions` derivada; `/carteira` com preço médio e resultado; `/carteira/movimentacoes`; `/carteira/proventos`; carteira manual + CSV genérico
+
+**Bloco 4 · análise e lançamento → `v1.0.0` (09/10)**
 - [ ] Engine portado de `ferramentas/` lendo do schema `market`, com golden tests da carteira do vídeo 02; leitura `cost`
-- [ ] Carteira manual + CSV genérico
 - [ ] `POST /v1/analyses` com narrativa + guard; tela de resultado; histórico
 - [ ] `/conta`: exportar, excluir, sessões, consentimentos
 - [ ] Cifra de movimentações, `audit_log`, `access_log` com purge, rate limits
-- [ ] Testes: IDOR, disclaimer obrigatório, guard, parsers, fórmulas de indicadores
+- [ ] Testes: IDOR, disclaimer obrigatório, guard, parsers, fórmulas de indicadores; smoke test do portal
 
-### v1.x — Semanas 3–8
+### v1.x — Semanas 4–12 (uma tag por entrega, nesta ordem)
 
-- Screener completo com filtros (`/acoes`, `/fiis`) · demonstrações trimestrais (ITR) e fluxo de caixa · crescimento (CAGR) · série histórica de indicadores · `/comparar` · `/indicadores` (glossário completo) · informes de FII (vacância, imóveis) · `/carteira/evolucao` · `/leitura` como arquivo · `analysis_feedback`.
+1. Screener completo com filtros (`/acoes`, `/fiis`, `/etfs`, `/bdrs`) · 2. `/carteira/calendario` + `/favoritos` · 3. ITR, DFC, CAGR e histórico de indicadores · 4. `/carteira/evolucao` + `/carteira/rentabilidade` · 5. `/indicadores` (glossário completo) · 6. `/conta/alertas` · 7. `/comparar` · 8. informes de FII (vacância, imóveis) · 9. **fundos de investimento** (`/fundos`) · 10. `/leitura` como arquivo + `/manifesto` · 11. `analysis_feedback`.
 
-### Fase 1 — Consolidador de verdade (meses 1–4)
+### Fase 1 — Consolidador de verdade (meses 1–4) → `v2.0.0`
 
-- **Integração oficial da B3** (contrato, homologação, `/conta/integracoes`, `b3_connections`, sincronização) · exchanges/wallets read-only · importação de nota de corretagem · 2FA · bot do Telegram consumindo a mesma API.
+- **Integração oficial da B3** (contrato, homologação, `/conta/integracoes`, `b3_connections`, sincronização) · exchanges/wallets read-only · importação de nota de corretagem · **imposto de renda** (`/carteira/ir`, `POST /v1/portfolios/tax`, `tax_periods`, DARF, relatório anual) · alertas por Telegram · 2FA · bot do Telegram consumindo a mesma API.
 
-### Fase 2 — Monetização (meses 3–9)
+### Fase 2 — Monetização (meses 3–9) → `v3.0.0`
 
-- Pagamento + `/planos` + NFS-e + CDC (§8.6) · paywall no relatório com IA e em recursos avançados (histórico longo de indicadores, comparador, alertas).
+- Pagamento + `/planos` + NFS-e + CDC (§8.6) · paywall no relatório com IA e em recursos avançados (IR, alertas, histórico longo de indicadores, comparador, rentabilidade detalhada) · **internacional** (stocks, REITs) com provedor licenciado (ADR-019).
 
 ### Fase 3+ — Research e consultoria
 
@@ -726,6 +785,9 @@ O site não custodia, não intermedeia, não converte criptoativos. Registrar is
 - **Resultado da verificação dos termos da B3** (§8.10) — decide se as cotações vêm do COTAHIST ou de provedor licenciado.
 - Chave da CoinGecko (Demo) e texto de atribuição.
 - Prints do passo a passo de exportação da Área do Investidor (para `/carteira/importar/b3`).
+- URL e termos verificados da carteira teórica dos índices da B3 (mesma verificação do COTAHIST).
+- `content/agenda-macro.json` do ano corrente (Copom, IPCA, FOMC, vencimentos) com `source_url` em cada item.
+- Provedor de dados internacionais, contrato e limites (Fase 2, ADR-019).
 
 ---
 
@@ -755,6 +817,13 @@ Cada funcionalidade nova entra neste documento como um **módulo**, com o mesmo 
 | Análise por IA (cinco leituras + custo) | §2.3, §6 |
 | Dados de mercado (ações, FIIs, Tesouro, cripto, screener, comparador, glossário) | §2.1, §2.3, §3.5, §4.3, §5, §8.10, §9 |
 | Conexão oficial B3 | §2.2, §4.2, §8.11, Fase 1 |
+| Portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`) | §1 (público 4), §2.1, §2.3, §3.5 (agenda macro), §4.3 (`market_events`), §5, §8.10, §9, ADR-018 |
+| ETFs, BDRs e índices (páginas e composição) | §2.1, §2.3, §3.5 (carteiras teóricas), §4.3 (`securities`, `indices*`), §8.10 |
+| Comunicados CVM (IPE) por empresa e na agenda | §2.1, §2.3, §3.5, §4.3 (`company_documents`), §8.3 |
+| Fundos de investimento (CVM) | §2.1, §2.3, §3.5, §4.3 (`funds`, `fund_daily`), v1.x |
+| Carteira avançada (calendário, rentabilidade TWR, favoritos, alertas) | §2.2, §2.3, §4.2 (`watchlist_items`, `alerts`), §4.5, v1.x |
+| Imposto de renda | §2.2, §2.3, §4.2 (`tax_periods`), §4.5, §8.3, Fase 1 |
+| Internacional (stocks, REITs) | §2.1, §3.5, §4.3 (`securities.market`), §8.10, Fase 2, ADR-019 (pendente) |
 
 ### Próximos módulos
 

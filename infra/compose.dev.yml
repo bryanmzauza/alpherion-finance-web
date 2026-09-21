@@ -52,6 +52,44 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: "1"
       MP_SMTP_AUTH_ALLOW_INSECURE: "1"
 
+  # Lista de e-mail (site.md §3.4). Banco próprio; SMTP → mailpit. Primeiro boot: instala o schema.
+  # Depois: infra/scripts/listmonk-setup.sh cria a lista, o usuário de API e ajusta os templates.
+  listmonk:
+    image: listmonk/listmonk:v5.0.3
+    command: ["sh", "-c", "./listmonk --install --idempotent --yes --config '' && ./listmonk --config ''"]
+    ports:
+      - "127.0.0.1:9000:9000"
+    environment:
+      LISTMONK_app__address: "0.0.0.0:9000"
+      LISTMONK_app__root_url: "http://127.0.0.1:9000"
+      LISTMONK_db__host: postgres
+      LISTMONK_db__port: "5432"
+      LISTMONK_db__user: listmonk
+      LISTMONK_db__password: ${LISTMONK_DB_PASSWORD:?defina LISTMONK_DB_PASSWORD no .env}
+      LISTMONK_db__database: listmonk
+      LISTMONK_db__ssl_mode: disable
+      LISTMONK_ADMIN_USER: ${LISTMONK_ADMIN_USER:-admin}
+      LISTMONK_ADMIN_PASSWORD: ${LISTMONK_ADMIN_PASSWORD:?defina LISTMONK_ADMIN_PASSWORD no .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # Analytics sem cookie. Opcional em dev: docker compose --profile analytics up -d
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    profiles: ["analytics"]
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:?defina UMAMI_DB_PASSWORD no .env}@postgres:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?defina UMAMI_APP_SECRET no .env}
+      DISABLE_TELEMETRY: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   redis-data:

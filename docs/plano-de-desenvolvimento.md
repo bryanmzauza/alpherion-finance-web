@@ -1,15 +1,16 @@
 # Plano de desenvolvimento — Alpherion Finance
 
-> Versão do plano: **1.0** · Data: 19/09/2026 · Responsável: Bryan
+> Versão do plano: **2.0** · Data: 20/09/2026 · Responsável: Bryan
 > Especificação de referência: [site.md](site.md) · Estratégia: [roadmap.md](roadmap.md) · Decisões: [adr/](adr/README.md)
 > Regra: a **ordem** das etapas é fixa (§11 do site.md). As datas são metas; se escorregarem, a ordem não muda.
 
 ## Histórico do plano
 
 | Versão | Data       | Mudança                                                                                                                                                             |
-| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 19/09/2026 | Plano inicial a partir do site.md. Decisões: monorepo, SemVer com tags por marco, Better Auth. Auth antecipada para o início do Bloco 2 (a carteira exige sessão) |
 | 1.0     | 19/09/2026 | Nota (sem mudança de escopo): Etapa 1 entregue com Next.js 16 (site.md §3.4 diz "15+"); texto da etapa ajustado                                                    |
+| 2.0     | 20/09/2026 | **Paridade funcional com o Status Invest** ([ADR-018](adr/ADR-018-paridade-status-invest.md)). v1.0 adiado de 25/09 para **09/10/2026**. Entram no v1.0: portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição, comunicados CVM. v1.0 dividido em quatro blocos (`v0.2.0` → `v0.4.0` → `v1.0.0`). v1.x reordenado (11 entregas) com calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento. IR na Fase 1; internacional na Fase 2 (ADR-019 pendente). Etapas 0–2 inalteradas |
 
 ## Como este plano é mantido
 
@@ -21,13 +22,24 @@
 ## Convenções de versionamento
 
 | Item           | Regra                                                                                                                                                                                                                                         |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Versão        | SemVer.`web` e `api` sempre com a **mesma tag** (site.md §10). `engine_version` e `prompt_version` são versionados à parte dentro da API e gravados em cada análise                                                         |
-| Tags por marco | `v0.0.1` bootstrap · `v0.1.0` Fase 0 no ar · `v0.2.0` Bloco 1 (dados) · `v0.3.0` Bloco 2 (carteira/B3) · `v1.0.0` app aberto · `v1.1.0+` entregas do v1.x · `v2.0.0` Fase 1 (B3 oficial) · `v3.0.0` Fase 2 (pagamento) |
+| Tags por marco | `v0.0.1` bootstrap · `v0.1.0` Fase 0 no ar · `v0.2.0` Bloco 1 (pipeline + páginas de ativo) · `v0.3.0` Bloco 2 (portal de mercado) · `v0.4.0` Bloco 3 (carteira/B3) · `v1.0.0` app aberto · `v1.1.0+` entregas do v1.x · `v2.0.0` Fase 1 (B3 oficial, IR) · `v3.0.0` Fase 2 (pagamento, internacional) |
 | Branches       | `main` sempre deployável. Uma branch curta por item (`feat/landing-hero`, `feat/api-cotahist`). Squash na `main`. Depois da `v0.1.0`, nunca commitar direto na `main`                                                            |
 | Commits        | Conventional Commits em pt-BR:`feat:`, `fix:`, `docs:`, `chore:`, `infra:`, `data:`, `test:`. Escopo opcional: `feat(web):`, `feat(api):`                                                                                   |
 | CHANGELOG      | [CHANGELOG.md](../CHANGELOG.md) no formato Keep a Changelog; `[Unreleased]` acumula entre tags e vira a seção da tag no fechamento                                                                                                         |
 | Deploy         | Só por tag (`deploy.yml` dispara em `v*`). Migrations aditivas na tag; destrutivas em tag separada, após deploy                                                                                                                         |
+
+## Calendário (metas)
+
+| Data       | Marco                                                                | Tag        |
+| ---------- | -------------------------------------------------------------------- | ---------- |
+| 21/09/2026 | Fase 0 no ar; **vídeo 1** publicado                                  | `v0.1.0`   |
+| 28/09/2026 | Pipeline de dados + páginas de ativo de todas as classes             | `v0.2.0`   |
+| 02/10/2026 | Portal de mercado (header, `/mercado`, `/agenda`, setores); **vídeo 2** demonstra o portal e o raio-x | `v0.3.0`   |
+| 06/10/2026 | Auth, carteira, importação B3                                         | `v0.4.0`   |
+| 09/10/2026 | Análise por IA, conta, segurança; **vídeo 3** abre o app             | `v1.0.0`   |
+| semanas 4–12 | Onze entregas do v1.x, uma tag cada                                | `v1.1.0`…`v1.11.0` |
 
 ---
 
@@ -76,11 +88,11 @@ Meta: no ar antes do vídeo 1 (21/09). SSG/ISR, zero cookie no site público.
 
 ### 2.3 Lista de e-mail
 
-- [ ] Listmonk no compose (banco próprio), double opt-in, `List-Unsubscribe` one-click
-- [ ] `POST /api/subscribe`: zod, rate limit Redis 10/min/IP, honeypot, chama Listmonk, grava `consents` (`document_version`, ip, user_agent, `source="landing"`)
-- [ ] Tabelas `consents` e `data_requests` — primeira migration Drizzle do schema `app`
-- [ ] `/lista/obrigado`, `/lista/confirmar?t=`, `/lista/sair?t=` (SSR; sem login, sem "tem certeza?")
-- [ ] Eventos Umami `subscribe_submit`, `subscribe_confirm`
+- [X] Listmonk no compose (banco próprio), double opt-in, `List-Unsubscribe` one-click
+- [X] `POST /api/subscribe`: zod, rate limit Redis 10/min/IP, honeypot, chama Listmonk, grava `consents` (`document_version`, ip, user_agent, `source="landing"`)
+- [X] Tabelas `consents` e `data_requests` — primeira migration Drizzle do schema `app`
+- [X] `/lista/obrigado`, `/lista/confirmar?t=`, `/lista/sair?t=` (SSR; sem login, sem "tem certeza?")
+- [X] Eventos Umami `subscribe_submit`, `subscribe_confirm`
 
 ### 2.4 SEO, performance, acessibilidade
 
@@ -92,7 +104,7 @@ Meta: no ar antes do vídeo 1 (21/09). SSG/ISR, zero cookie no site público.
 ### 2.5 Documentos obrigatórios (`docs/`)
 
 - [ ] `ropa.md` v1 · `runbooks/incidente.md` · `runbooks/restore.md` · `runbooks/rotacao-de-chave.md`
-- [ ] `fontes-de-dados.md`: termos de CVM, Tesouro, BCB, CoinGecko **e verificação da B3** (§8.10) → decide COTAHIST vs provedor licenciado → **ADR-017**
+- [ ] `fontes-de-dados.md`: termos de CVM (Dados Abertos, IPE, Fundos), Tesouro, BCB, CoinGecko **e verificação da B3** (§8.10: COTAHIST, listagem, eventos **e carteiras teóricas de índices**) → decide COTAHIST vs provedor licenciado → **ADR-017**
 
 ### 2.6 Infra de produção (`infra/`)
 
@@ -104,146 +116,200 @@ Meta: no ar antes do vídeo 1 (21/09). SSG/ISR, zero cookie no site público.
 
 **Pronto quando:** `alpherion.com.br` no ar com as páginas da Fase 0; um e-mail real confirmado por double opt-in; securityheaders A+; SSL Labs A+; Lighthouse ≥ 95; `fontes-de-dados.md` com a B3 verificada. → **tag `v0.1.0`**.
 
-## Etapa 3 — v1.0 Bloco 1: pipeline de dados + páginas de ativos → `v0.2.0`
+## Etapa 3 — v1.0 Bloco 1: pipeline de dados + páginas de ativo → `v0.2.0` · meta 28/09
 
-Por que primeiro: é o que o vídeo mostra e o que traz tráfego orgânico. Tudo na API; o `web` nunca lê `market` direto.
+Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. Tudo na API; o `web` nunca lê `market` direto. Cobre **todas as classes listadas na B3** (ações, units, FIIs, ETFs, BDRs, índices) mais Tesouro e cripto — o portal da Etapa 4 só monta em cima disso.
 
 ### 3.1 Schema `market` (SQLAlchemy + Alembic)
 
-- [ ] Tabelas do §4.3: `securities`, `daily_quotes` (particionada por ano), `corporate_actions`, `financial_statements`, `company_facts`, `indicators_daily`, `fii_reports`, `treasury_bonds`, `treasury_daily`, `macro_series`, `crypto_assets/daily/metrics`, `etl_runs`, `data_sources`
+- [ ] Tabelas do §4.3: `securities` (com `market`, `sector_slug`, `etf_index_slug`, `bdr_ratio`), `daily_quotes` (particionada por ano), `corporate_actions`, `financial_statements`, `company_facts`, `indicators_daily`, `fii_reports`, `treasury_bonds`, `treasury_daily`, `macro_series`, `crypto_assets/daily/metrics`, `etl_runs`, `data_sources`
+- [ ] Tabelas novas do portal: `indices`, `index_daily`, `index_compositions`, `company_documents`, `market_events` (view materializada)
 - [ ] Índices em todo campo filtrável; `statement_timeout 5s` no usuário `api`
 
 ### 3.2 Sources + transform (cada um com teste sobre fixture pequena)
 
 - [ ] `b3_cotahist.py` + `cotahist_parser.py` (layout posicional) — ou fonte licenciada, conforme ADR-017
-- [ ] `b3_events.py` (listagem + eventos; fallback CVM/FRE documentado)
+- [ ] `b3_listing.py` (ações, units, **ETFs, BDRs**, FIIs) + `b3_events.py` (eventos; fallback CVM/FRE documentado)
+- [ ] `b3_indices.py`: carteira teórica e fechamento dos índices (Ibovespa, IFIX, IDIV, SMLL, IBRX 100, IBRA, IFNC, IMOB, UTIL); fallback = manter a última carteira e expor a data
 - [ ] `cvm.py` (cadastro, DFP, FRE/FCA, informes de FII) + `cvm_statements.py` (formato longo; versão mais recente por período)
+- [ ] `cvm_documents.py` (IPE: metadados + link; incremental por data de entrega; **nunca baixa o documento**)
 - [ ] `tesouro.py`, `bcb.py` (códigos SGS documentados), `coingecko.py` (chave Demo, atribuição)
 - [ ] `adjust.py` (fator acumulado) e `indicators.py` (fórmulas; `null` com motivo quando falta entrada; testes contra casos à mão)
-- [ ] Proteções §7.5: limite de download, zip bomb, lista fechada de hosts
+- [ ] `events.py`: monta `market_events` a partir de `corporate_actions`, `company_documents` e `content/agenda-macro.json`
+- [ ] Proteções §7.5: limite de download, zip bomb, lista fechada de hosts (inclui os hosts novos da B3 e da CVM)
 
 ### 3.3 Jobs (idempotentes, lock no Redis, registram `etl_runs`)
 
-- [ ] `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `cvm_companies`, `cvm_statements` (DFP anual), `cvm_fii_reports`, `tesouro_daily`, `bcb_series`, `coingecko_prices`, `coingecko_history`, `adjust_factors`, `indicators_rebuild`, `revalidate_pages`
+- [ ] `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `b3_index_composition`, `cvm_companies`, `cvm_statements` (DFP anual), `cvm_fii_reports`, `cvm_documents`, `tesouro_daily`, `bcb_series`, `coingecko_prices`, `coingecko_history`, `adjust_factors`, `indicators_rebuild`, `market_events_rebuild`, `revalidate_pages`
 - [ ] Agendamento por cron do host (preferido) ou `scheduler.py`
-- [ ] `infra/scripts/backfill-market.sh` com `--sample` (20 ações, 10 FIIs, Tesouro, top 20 cripto, 3 anos) para dev
+- [ ] `infra/scripts/backfill-market.sh` com `--sample` (20 ações, 10 FIIs, 5 ETFs, 5 BDRs, 3 índices, Tesouro, top 20 cripto, 3 anos, IPE de 90 dias) para dev
 - [ ] `docs/runbooks/reprocessar-job.md`
 
 ### 3.4 Endpoints de mercado
 
-- [ ] `GET /v1/market/overview` · `/v1/securities` (lista + busca; filtros de lista fechada; paginação ≤ 100) · `/v1/securities/{ticker}` · `/history` · `/dividends` · `/financials?period=annual`
-- [ ] `/v1/treasury*` · `/v1/crypto*` (+ `/correlations`) · `/v1/quotes` · `/v1/assets/search`
+- [ ] `GET /v1/market/overview` · `/v1/market/strip` · `/v1/market/movers` (métrica de lista fechada, `min_volume`) · `/v1/market/events`
+- [ ] `/v1/securities` (lista + busca; `type=stock|fii|etf|bdr`; presets de ordenação; paginação ≤ 100) · `/v1/securities/{ticker}` · `/history` · `/dividends` · `/events` · `/documents` · `/financials?period=annual`
+- [ ] `/v1/sectors` · `/v1/sectors/{slug}` · `/v1/indices` · `/v1/indices/{slug}` · `/composition` · `/history`
+- [ ] `/v1/treasury*` · `/v1/crypto*` (+ `/correlations`) · `/v1/quotes` · `/v1/assets/search` (todas as classes + índices, agrupado por classe)
 - [ ] `POST /v1/market/weekly-reading` (porta de `ferramentas/leitura-semanal.py`)
-- [ ] Cache Redis (cotação 5 min); todo bloco de resposta com `source`, `document`, `updated_at`
+- [ ] Cache Redis (cotação 5 min; strip 5 min; movers 5 min); todo bloco de resposta com `source`, `document`, `updated_at`
 
 ### 3.5 Páginas de mercado (`app/(market)/`, ISR, container 1280)
 
-- [ ] `components/market/`: `PriceHeader`, `HistoryChart` (leve, client-only, lazy, tabela como fallback), `IndicatorGrid` (tooltip a partir de `content/indicadores/*.mdx`), `FinancialTable`, `DividendTable` + `DividendChart`, `EventList`, `TreasuryTable`, `CryptoTable`, `SourceBadge`, `AssetCTA`, busca de ticker
-- [ ] Rotas: `/mercado`, `/acoes`, `/acoes/[ticker]`, `/fiis`, `/fiis/[ticker]`, `/tesouro`, `/tesouro/[slug]`, `/cripto`, `/cripto/[id]`
-- [ ] Redirects: ticker minúsculo → maiúsculo (301); inexistente → 404 com busca; `www.` → apex
+- [ ] `components/market/`: `PriceHeader`, `HistoryChart` (leve, client-only, lazy, tabela como fallback), `IndicatorGrid` (tooltip a partir de `content/indicadores/*.mdx`), `FinancialTable`, `DividendTable` + `DividendChart`, `EventList` (eventos corporativos + próximos data-com/pagamentos), `DocumentList` (comunicados CVM: categoria, assunto, data, link), `IndexCompositionTable`, `TreasuryTable`, `CryptoTable`, `SourceBadge`, `AssetCTA`, `TickerLink`, `SameSectorList`
+- [ ] Rotas: `/acoes`, `/acoes/[ticker]` (com abas Eventos e Comunicados, cadastro, mesmo setor), `/fiis`, `/fiis/[ticker]`, `/etfs`, `/etfs/[ticker]`, `/bdrs`, `/bdrs/[ticker]`, `/indices`, `/indices/[slug]`, `/tesouro`, `/tesouro/[slug]`, `/cripto`, `/cripto/[id]`
+- [ ] Redirects: ticker minúsculo → maiúsculo (301); ticker na rota da classe errada → 301 para a classe certa; inexistente → 404 com busca; `www.` → apex
 - [ ] `app/api/revalidate` (token) chamado pelo job `revalidate_pages`
-- [ ] Sitemaps segmentados com `lastmod`; título/description por template; JSON-LD `Corporation` + `BreadcrumbList`; OG com ticker dourado + cotação; `Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400`
-- [ ] Seção "Dados de mercado" da landing linkando de verdade
+- [ ] Sitemaps segmentados por classe (`/sitemap/acoes.xml`, `fiis`, `etfs`, `bdrs`, `indices`, `tesouro`, `cripto`) com `lastmod`; título/description por template; JSON-LD `Corporation` + `BreadcrumbList`; OG com ticker dourado + cotação; `Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400`
+- [ ] Seção "Dados de mercado" da landing linkando de verdade (agora com 7 links: ações, FIIs, ETFs, BDRs, índices, Tesouro, cripto)
 
 ### 3.6 Operação
 
-- [ ] Alerta de frescor (endpoint interno lendo `etl_runs` do dia; alerta se `cotahist_daily` não rodou até 21h) → Telegram
+- [ ] Alerta de frescor (endpoint interno lendo `etl_runs` do dia; alerta se `cotahist_daily` não rodou até 21h ou se `cvm_documents`/`b3_index_composition` falharam 2 dias seguidos) → Telegram
 - [ ] `backfill-market.sh` completo rodado em produção **antes** da tag
 
-**Pronto quando:** `/acoes/PETR4`, `/fiis/MXRF11`, `/tesouro/…`, `/cripto/bitcoin` no ar com dados reais; todo número com `SourceBadge`; testes de parser/fórmulas verdes; jobs no cron; sitemap no Search Console. → **tag `v0.2.0`**.
+**Pronto quando:** `/acoes/PETR4`, `/fiis/MXRF11`, `/etfs/BOVA11`, `/bdrs/AAPL34`, `/indices/ibovespa` (com composição datada), `/tesouro/…`, `/cripto/bitcoin` no ar com dados reais; comunicados da PETR4 listados com link para a CVM; todo número com `SourceBadge`; testes de parser/fórmulas verdes; jobs no cron; sitemap no Search Console. → **tag `v0.2.0`**.
 
-## Etapa 4 — v1.0 Bloco 2: auth, carteira, movimentações, importação B3 → `v0.3.0`
+## Etapa 4 — v1.0 Bloco 2: portal de mercado → `v0.3.0` · meta 02/10
 
-### 4.0 Auth (antecipada: a carteira exige sessão)
+O que o visitante do Status Invest espera ao abrir o site: faixa de índices, busca de ticker em qualquer página, "o que aconteceu hoje" e "o que vem esta semana". Só monta sobre os endpoints da Etapa 3; nenhuma lógica nova no `web`.
+
+### 4.1 Header do site público
+
+- [ ] `MarketStrip` (server component; `GET /v1/market/strip` com `revalidate: 300`; "—" quando a API não responde; a landing continua SSG/ISR e estática por 5 min)
+- [ ] `GlobalSearch` (client component carregado **no foco**; `app/api/market/search` com rate limit 30/min/IP → `/v1/assets/search`; teclado e `aria-*` completos; Enter sem seleção → `/busca?q=`)
+- [ ] Menu novo: Ações · FIIs · ETFs · BDRs · Índices · Tesouro · Cripto · Setores · Agenda · Raio-X · Vídeos (mobile: drawer)
+- [ ] Teste: landing continua < 90 kB gzip de JS inicial e **zero cookie** (Playwright/CI verifica `document.cookie === ""` e ausência de `Set-Cookie`)
+
+### 4.2 `/mercado` (portal)
+
+- [ ] Faixa completa (Ibovespa, IFIX, IDIV, SMLL, PTAX, Selic, CDI 12 m, IPCA 12 m, BTC) com `SourceBadge` por item
+- [ ] Blocos por classe com contadores factuais (`/v1/market/overview`) e links
+- [ ] Tab **Hoje**: `MoversList` ×3 (maiores altas, maiores baixas, mais negociadas por volume financeiro) com a métrica no título e `min_volume`
+- [ ] Tab **Eventos**: data-com e pagamentos do dia/semana, comunicados relevantes do dia, macro
+- [ ] `GlobalSearch` em destaque; disclaimer e rodapé de fontes (§8.10)
+
+### 4.3 `/agenda`
+
+- [ ] `EventCalendar` semanal (padrão) e mensal; `/agenda/[ano]-[semana]` ISR; filtros por classe e tipo (proventos, comunicados, macro) na URL
+- [ ] `content/agenda-macro.json` do ano (Copom, IPCA/IPCA-15, IGP-M, FOMC, vencimentos de opções e índices) com `source_url` em cada item; teste de schema
+- [ ] JSON-LD `Event` por item; `noindex` em semanas passadas além de 12 meses
+
+### 4.4 `/setores` e `/setores/[slug]`
+
+- [ ] `SectorTree` (setor → subsetor → segmento B3; segmentos de FII)
+- [ ] Página do setor: tabela ordenável (cotação, variação, liquidez, P/L, P/VP, DY 12 m, market cap; padrão liquidez; URL com estado), agregados factuais, JSON-LD `ItemList`
+- [ ] `SameSectorList` nas páginas de ativo linkando para o setor
+
+### 4.5 `/busca?q=` e presets
+
+- [ ] Resultado agrupado por classe (SSR, `noindex`)
+- [ ] Presets de ordenação em `/acoes` e `/fiis` por URL (`?sort=&dir=`) com título neutro ("Maior dividend yield 12 m"); `noindex` com parâmetros; **nunca** "melhores/baratas/oportunidades" (teste de lint de conteúdo sobre `content/` e títulos)
+
+### 4.6 SEO e operação
+
+- [ ] Sitemaps: `/sitemap/setores.xml`, `/sitemap/agenda.xml`; `/mercado` e `/agenda` revalidadas pelo `revalidate_pages` após `market_events_rebuild`
+- [ ] Umami: eventos `search_open`, `search_select`, `agenda_filter`
+- [ ] **Vídeo 2 (02/10)** demonstra o portal e o raio-x (ambiente de produção, carteira ilustrativa)
+
+**Pronto quando:** header com faixa e busca em todas as páginas do site público; `/mercado`, `/agenda`, `/setores/[slug]` e `/busca` no ar com dados reais; teste de zero cookie e orçamento de JS verdes; Lighthouse ≥ 95 em `/mercado`. → **tag `v0.3.0`**.
+
+## Etapa 5 — v1.0 Bloco 3: auth, carteira, movimentações, importação B3 → `v0.4.0` · meta 06/10
+
+### 5.0 Auth (antecipada: a carteira exige sessão)
 
 - [ ] Better Auth + adapter Drizzle (`users`, `sessions`, `accounts`, `verification_tokens`); magic link (uso único, 15 min, hash) via SMTP + Google OAuth (PKCE); cookie `HttpOnly Secure SameSite=Lax`, 30 dias sliding
 - [ ] `/entrar` com checkbox Termos+Privacidade **não pré-marcado** gravando `consents` com a versão do MDX · `/entrar/verificar`
 - [ ] Middleware em `(app)/`; `/` do app redireciona conforme existência de carteira; redirects `/entrar`, `/cadastro`, `/carteira` do domínio público → app
 - [ ] `audit_log` append-only (GRANT sem UPDATE/DELETE) com `login`/`logout`
 
-### 4.1 Schema `app` carteira (Drizzle, migration aditiva)
+### 5.1 Schema `app` carteira (Drizzle, migration aditiva)
 
-- [ ] `portfolios`, `transactions`, `income_events`, `position_adjustments`, `import_batches`, `assets` (com `factor_map` vindo do `FATORES` de `raio-x-carteira.py` + setor B3 por padrão)
+- [ ] `portfolios`, `transactions`, `income_events`, `position_adjustments`, `import_batches`, `assets` (com `factor_map` vindo do `FATORES` de `raio-x-carteira.py` + setor B3 por padrão; `asset_class` cobre `etf_br` e `bdr` desde já)
 - [ ] `lib/crypto.ts` AES-256-GCM com `key_version` para as colunas cifradas do §7.4
 - [ ] `lib/positions.ts`: derivação em memória (PM pelo método da Receita + ajustes)
 
-### 4.2 Importadores na API
+### 5.2 Importadores na API
 
 - [ ] `importers/b3/posicao.py`, `negociacao.py`, `proventos.py`, `importers/csv.py`: openpyxl `read_only`, sem macros, limites de linhas/células/tamanho descomprimido, checagem de conteúdo, **descarte de CPF/nome antes de qualquer log**, `external_key` = hash (ativo, data, tipo, qtd, preço)
-- [ ] Fixtures anonimizadas em `tests/fixtures/b3/`
+- [ ] Fixtures anonimizadas em `tests/fixtures/b3/` (incluindo linhas de ETF e BDR)
 - [ ] `POST /v1/imports/b3/preview`, `POST /v1/imports/csv/preview`, `POST /v1/portfolios/valuation`
 
-### 4.3 Telas (`app/(app)/carteira/`)
+### 5.3 Telas (`app/(app)/carteira/`)
 
 - [ ] `/carteira/nova` (2 passos) · `/carteira/importar` (CSV; `public/csv-modelo.csv`) · `/carteira/importar/b3` (passo a passo com prints; aviso de descarte de CPF/nome **antes** do upload; 1–3 arquivos ≤ 5 MB; prévia; avisos por linha; dedupe por hash de arquivo e `external_key`)
-- [ ] `/carteira` (PM, atual, resultado, peso; **Analisar** desabilitado até a Etapa 5) · `/carteira/movimentacoes` · `/carteira/proventos` (yield on cost como fato)
+- [ ] `/carteira` (PM, atual, resultado, peso; **Analisar** desabilitado até a Etapa 6) · `/carteira/movimentacoes` · `/carteira/proventos` (yield on cost como fato)
+- [ ] Busca de ativo no app reaproveita `GlobalSearch` (mesmo componente, mesma API)
 - [ ] Route handlers `app/api/portfolio/*`, `app/api/imports/*` filtrando **sempre** por `user_id` da sessão
 - [ ] Evento Umami `b3_import`
 
-**Pronto quando:** usuário real entra por magic link, importa os 3 arquivos da Área do Investidor, vê posições com PM correto (fixture conhecida); reenvio não duplica; teste IDOR passa. → **tag `v0.3.0`**.
+**Pronto quando:** usuário real entra por magic link, importa os 3 arquivos da Área do Investidor, vê posições com PM correto (fixture conhecida); reenvio não duplica; teste IDOR passa. → **tag `v0.4.0`**.
 
-## Etapa 5 — v1.0 Bloco 3: engine, análise por IA, conta, segurança, lançamento → `v1.0.0`
+## Etapa 6 — v1.0 Bloco 4: engine, análise por IA, conta, segurança, lançamento → `v1.0.0` · 09/10
 
-### 5.1 Engine (`alpherion/engine/`)
+### 6.1 Engine (`alpherion/engine/`)
 
 - [ ] Portar `ferramentas/raio-x-carteira.py` em `concentration.py`, `correlation.py`, `exposure.py`, `drawdown.py`, `liquidity.py`, `cost.py`, lendo `market.daily_quotes` (ajustado), `macro_series` (Selic real), `crypto_daily`
 - [ ] `tests/test_engine_golden.py` com a carteira do vídeo 02 → **38% / 0,91 / 0,96 / −34,4%** (tolerância documentada: a fonte muda de Yahoo para COTAHIST/CoinGecko)
 - [ ] `engine_version` em `settings`
 
-### 5.2 Narrativa (`alpherion/narrative/`)
+### 6.2 Narrativa (`alpherion/narrative/`)
 
 - [ ] `prompts/` versionados por data · `client.py` (Claude API; modelo mais econômico que passe no guard — consultar docs ao implementar) · `schemas.py` (pydantic; extras descartados)
 - [ ] `guard.py`: regex pt-BR com flexões → regenera 1x → fallback genérico por leitura, `narrative_filtered=true`; `tests/test_guard.py`
 - [ ] Pseudonimização (§6.2); timeout LLM 15 s, análise 30 s; custo diário no Redis + alerta Telegram
 
-### 5.3 `POST /v1/analyses`
+### 6.3 `POST /v1/analyses`
 
 - [ ] Contrato exato do §2.3; `readings` determinístico; `cost` só com movimentações com preço; `disclaimer` sempre presente
 
-### 5.4 Web
+### 6.4 Web
 
 - [ ] `app/api/analyses` (rate limit 3/dia/usuário via env; ≤ 100 posições); grava `analyses` (`input_snapshot` cifrado, tokens, custo)
 - [ ] `/analise/[id]`: `ReadingCard` ×5, `CorrelationMatrix` (narrativa como alternativa textual), `DrawdownChart`, texto do Alpherion, disclaimer fixo, "o que isso não é" · `/analises` · botão **Analisar** ativo
 - [ ] Carteira manual (`position_adjustments`: `quantity` **ou** `value_brl`)
 - [ ] Teste de UI: nenhuma tela de análise renderiza sem o `disclaimer` do backend · evento `analysis_run`
 
-### 5.5 Conta (`/conta`)
+### 6.5 Conta (`/conta`)
 
 - [ ] E-mail, nome opcional, sessões ativas (revogar), **exportar JSON**, **excluir conta** (`delete_requested_at` → job apaga em 7 dias), consentimentos e revogação, `data_requests`
 - [ ] `access_log` (ou export do nginx) com purge em 6 meses; `audit_log` completo (§4.4)
-- [ ] Rate limits em subscribe, login, análise, importação, export; export CSV com escape de `= + - @`
+- [ ] Rate limits em subscribe, login, análise, importação, export, busca; export CSV com escape de `= + - @`
 
-### 5.6 Testes de fechamento
+### 6.6 Testes de fechamento
 
-- [ ] IDOR · disclaimer obrigatório · guard · parsers · fórmulas · `positions` derivadas — tudo no `ci.yml`
+- [ ] IDOR · disclaimer obrigatório · guard · parsers · fórmulas · `positions` derivadas · zero cookie no site público · lint de conteúdo (sem "melhores/recomendado/preço justo") — tudo no `ci.yml`
 - [ ] Checklist OWASP Top 10 no PR de release
 
-### 5.7 Lançamento
+### 6.7 Lançamento
 
 - [ ] Checklist pré-deploy do §10 (CI verde, migrações revisadas, `.env` na VPS, backup manual, securityheaders/SSL Labs, `etl_runs` verdes)
 - [ ] Fluxo de 3 minutos (entrar → importar B3 → Analisar → ler) cronometrado
-- [ ] Smoke test `/`, `/entrar`, `/acoes/PETR4`, `/v1/health`
+- [ ] Smoke test `/`, `/mercado`, `/agenda`, `/acoes/PETR4`, `/indices/ibovespa`, `/setores/petroleo-gas-e-biocombustiveis`, `/entrar`, `/v1/health`
 - [ ] Placeholders do §13 preenchidos; `docs/ropa.md` atualizado com importação e análise
 
-**Pronto quando:** o vídeo 3 (25/09) demonstra o fluxo completo em produção. → **tag `v1.0.0`**.
+**Pronto quando:** o vídeo 3 (09/10) demonstra o portal e o fluxo completo em produção. → **tag `v1.0.0`**.
 
-## Etapa 6 — v1.x (semanas 3–8) → `v1.1.0` … `v1.8.0`
+## Etapa 7 — v1.x (semanas 4–12) → `v1.1.0` … `v1.11.0`
 
-Uma tag por entrega, nesta ordem:
+Uma tag por entrega, nesta ordem (alternando SEO/dado e retenção/carteira). Cada item entra no `site.md` já especificado (§2, §4, §14).
 
-1. [ ] `/acoes` e `/fiis` com screener completo (filtros, URL com estado, `noindex` com parâmetros) → `v1.1.0`
-2. [ ] ITR trimestral + DFC + toggle em `FinancialTable`; CAGR 5a; `GET …/indicators/history` → `v1.2.0`
-3. [ ] `/indicadores` e `/indicadores/[slug]` (glossário completo; tooltips passam a linkar) → `v1.3.0`
-4. [ ] `/comparar` + `GET /v1/compare` → `v1.4.0`
-5. [ ] Informes de FII (vacância, imóveis) + `GET /v1/fiis/{ticker}/reports` → `v1.5.0`
-6. [ ] `/carteira/evolucao` + `POST /v1/portfolios/evolution` → `v1.6.0`
-7. [ ] `/leitura`, `/leitura/[slug]` (MDX semanal) e `/manifesto` → `v1.7.0`
-8. [ ] `analysis_feedback` → `v1.8.0`
+1. [ ] **Screener completo** em `/acoes`, `/fiis`, `/etfs`, `/bdrs`: filtros de lista fechada (setor, liquidez, P/L, P/VP, DY, ROE, dív. líq./EBITDA, market cap; FII: segmento, P/VP, DY, patrimônio), URL com estado, `noindex` com parâmetros, `Screener` component, `GET /v1/securities` com filtros → `v1.1.0`
+2. [ ] **`/carteira/calendario`** (`POST /v1/portfolios/income-calendar`: proventos anunciados × quantidade na data-com, comunicados e eventos dos ativos) + **`/favoritos`** (`WatchStar` nas páginas públicas com `localStorage`; `watchlist_items` no app; sincronização no primeiro login com aviso) → `v1.2.0`
+3. [ ] **ITR trimestral + DFC** + toggle em `FinancialTable`; CAGR 5a; `GET …/indicators/history` + gráfico de indicadores (P/L, P/VP, DY históricos) → `v1.3.0`
+4. [ ] **`/carteira/evolucao`** (`POST /v1/portfolios/evolution`) + **`/carteira/rentabilidade`** (`POST /v1/portfolios/performance`: TWR por cotização, por classe e ativo, × CDI/Ibovespa/IFIX/IPCA) → `v1.4.0`
+5. [ ] **`/indicadores`** e `/indicadores/[slug]` (glossário completo; tooltips passam a linkar) → `v1.5.0`
+6. [ ] **`/conta/alertas`** (`alerts`; job do `web` `app/api/jobs/alerts` disparado por cron com token, lendo `/v1/quotes` e `/v1/market/events`; e-mail transacional com link de desativação; limite por usuário; rate limit) → `v1.6.0`
+7. [ ] **`/comparar`** + `GET /v1/compare` (ações, FIIs, ETFs, BDRs; fundos após o item 9) → `v1.7.0`
+8. [ ] **Informes de FII** (vacância, imóveis) + `GET /v1/fiis/{ticker}/reports` → `v1.8.0`
+9. [ ] **Fundos de investimento (CVM)**: `funds`, `fund_daily` (particionada), sources `cvm_funds.py`, jobs `cvm_funds`/`cvm_funds_daily`, `GET /v1/funds*`, `/fundos`, `/fundos/[slug]`, busca global e `/v1/assets/search` com fundos, sitemap → `v1.9.0`
+10. [ ] **`/leitura`**, `/leitura/[slug]` (MDX semanal) e `/manifesto` → `v1.10.0`
+11. [ ] **`analysis_feedback`** → `v1.11.0`
 
 ## Etapas seguintes (entram como módulos pelo §14 do site.md)
 
-- **Fase 1 → `v2.0.0`**: integração oficial B3 (`b3_connections`, `/conta/integracoes`), exchanges read-only, nota de corretagem, 2FA, bot Telegram sobre a mesma API
-- **Fase 2 → `v3.0.0`**: pagamento (Pix/cartão/boleto, checkout hospedado), `/planos`, NFS-e, CDC (§8.6), paywall
+- **Fase 1 → `v2.0.0`**: integração oficial B3 (`b3_connections`, `/conta/integracoes`), exchanges read-only, nota de corretagem, **imposto de renda** (`/carteira/ir`, `POST /v1/portfolios/tax`, `tax_periods`, regras por classe versionadas em `tax_rules_version` — ações/isenção 20 mil, day trade, FII, ETF, BDR, cripto/isenção 35 mil —, prejuízo a compensar, DARF, relatório anual; disclaimer "não é consultoria tributária"), alertas por Telegram, 2FA, bot Telegram sobre a mesma API
+- **Fase 2 → `v3.0.0`**: pagamento (Pix/cartão/boleto, checkout hospedado), `/planos`, NFS-e, CDC (§8.6), paywall (relatório com IA, IR, alertas, histórico longo, comparador, rentabilidade detalhada), **internacional** (stocks, REITs) com provedor licenciado — **ADR-019** decide o provedor; `securities.market='us'`, câmbio PTAX; `/internacional*` só existe depois do contrato
 - **Fase 3**: research assinado (CNPI), segunda versão do aviso legal
 
 ---
@@ -252,8 +318,14 @@ Uma tag por entrega, nesta ordem:
 
 | Risco                                                        | Como o plano lida                                                                                                                                       |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Prazo: Fase 0 em 2 dias e v1.0 em 6 dias, uma pessoa         | A ordem dos blocos não muda;`v0.1.0` sai primeiro de qualquer forma                                                                                  |
-| Termos da B3 (§8.10) podem exigir licença para cotações  | Decisão na Etapa 2.5 (ADR-017),**antes** de codar o parser; se preciso, `cotahist_daily` vira job sobre provedor licenciado sem mudar o schema |
+| Prazo: Fase 0 em 1 dia e v1.0 em 19 dias, uma pessoa          | A ordem dos blocos não muda; `v0.1.0` sai primeiro de qualquer forma; `v0.2.0` e `v0.3.0` são publicáveis sozinhos (o portal já é produto antes do app) |
+| Termos da B3 (§8.10) podem exigir licença para cotações e carteiras teóricas | Decisão na Etapa 2.5 (ADR-017),**antes** de codar o parser; se preciso, `cotahist_daily` e `b3_index_composition` viram jobs sobre provedor licenciado sem mudar o schema |
+| Endpoints não documentados da B3 (listagem, eventos, carteira teórica) mudam sem aviso | Fallback por fonte (CVM para cadastro; última carteira com data para índices); alerta de frescor cobre 2 dias seguidos de falha |
+| Volume do IPE e (v1.x) dos informes de fundos                 | Carga incremental por data; partição por ano; `--sample` limita a 90 dias em dev                                                                        |
+| Header dinâmico (faixa + busca) pode quebrar a landing estática ou o zero cookie | `MarketStrip` é server component com cache de 5 min e fallback "—"; busca carrega no foco; testes de zero cookie e de orçamento de JS no CI |
+| Rankings e presets viram "recomendação implícita"            | Métrica sempre no título; padrão neutro; lint de conteúdo no CI; ADR-018 lista o que nunca entra                                                        |
 | Golden test do engine: números do vídeo 02 vieram do Yahoo | Documentar tolerância em vez de forçar igualdade                                                                                                      |
 | Backfill em produção leva horas e dezenas de GB            | Volume`market` provisionado na Etapa 2.6, não na 3                                                                                                   |
+| IR (Fase 1): regras mudam por ano e por classe               | `tax_rules_version` gravado em cada apuração; disclaimer próprio; só com histórico completo de movimentações                                             |
+| Internacional (Fase 2): custo mensal antes de receita        | Só com contrato e paywall; ADR-019 registra provedor, custo e direito de exibição                                                                       |
 | Ferramental local: sem`pnpm` e `gh`                      | `corepack enable` na Etapa 1; `gh` opcional                                                                                                         |
