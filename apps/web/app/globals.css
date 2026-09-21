@@ -13,6 +13,8 @@
   --color-ok: #4caf7d;
   --color-warn: #e0a64c;
   --color-risk: #d9534f;
+  /* Variante para TEXTO pequeno: #d9534f dá 4,07 de contraste sobre navy-2 (< 4,5 AA). Fundos e bordas seguem usando --color-risk. */
+  --color-risk-text: #e56e6a;
   --color-white: #ffffff;
   --color-black: #000000;
   --color-transparent: transparent;

@@ -89,7 +89,7 @@ export function EmailCapture({ source = "landing" }: { source?: string }) {
         label={
           <>
             Quero receber a Leitura de Mercado e avisos do Alpherion por e-mail. Li a{" "}
-            <Link href="/privacidade" className="text-gold underline-offset-4 hover:underline">
+            <Link href="/privacidade" className="text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
               Política de Privacidade
             </Link>
             .
@@ -98,7 +98,7 @@ export function EmailCapture({ source = "landing" }: { source?: string }) {
       />
 
       {error ? (
-        <p id={`${id}-error`} role="alert" className="mt-3 text-table text-risk">
+        <p id={`${id}-error`} role="alert" className="mt-3 text-table text-risk-text">
           {error}
         </p>
       ) : (

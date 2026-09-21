@@ -8,6 +8,12 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versioname
 - Plano de desenvolvimento **v2.0** — paridade funcional com o Status Invest ([ADR-018](docs/adr/ADR-018-paridade-status-invest.md)): v1.0 adiado de 25/09 para **09/10/2026** e dividido em quatro tags (`v0.2.0` pipeline + páginas, `v0.3.0` portal, `v0.4.0` carteira/B3, `v1.0.0` análise). `docs/site.md` ganha o portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição e comunicados CVM (v1.0); calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento (v1.x); imposto de renda (Fase 1); internacional com provedor licenciado (Fase 2, ADR-019 pendente). Fontes, tabelas, endpoints e módulos (§14) correspondentes. Roadmap sincronizado com a fonte (`alpherion-finance-yt`).
 
 ### Adicionado
+- Etapa 2.4 — SEO, performance, acessibilidade:
+  - Open Graph gerado com `next/og` (`lib/og.tsx`: navy + palavra dourada; fontes WOFF em `app/fonts/og/`), uma imagem por rota; `twitter:card`; JSON-LD `Organization` (home) e `VideoObject` (`/videos`).
+  - `sitemap.xml`, `robots.txt` (bloqueia `/lista/`, `/api/`, `/design`), `manifest.webmanifest`, `theme-color`.
+  - Headers de segurança do §7.3 no `next.config.ts` (CSP, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, COOP, `X-Frame-Options`); HSTS fica para o nginx. `Dockerfile` recebe `ARG SITE_URL` (URLs canônicas e OG no build).
+  - Lighthouse CI (`@lhci/cli`, job `lighthouse`): mediana ≥ 0,95 em acessibilidade, boas práticas e SEO (performance avisa) e scripts ≤ 170 kB gzip em `/` e `/raio-x`.
+  - Acessibilidade: links dentro de texto sempre sublinhados; token `--risk-text` para texto pequeno em vermelho (AA).
 - Estrutura do monorepo (`apps/`, `infra/`, `docs/`, `.github/`).
 - `docs/site.md` (especificação), `docs/brand-kit.md`, `docs/roadmap.md` (cópia de referência).
 - `docs/plano-de-desenvolvimento.md` v1.0 com etapas, checklists e tags por marco.

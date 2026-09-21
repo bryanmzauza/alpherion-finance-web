@@ -67,7 +67,7 @@ export default function SobrePage() {
         </div>
         <p className="mt-6 max-w-2xl text-table text-ice-70">
           Nada do que está aqui é recomendação, e nenhuma etapa futura é promessa. Veja o{" "}
-          <Link href="/aviso-legal" className="text-gold underline-offset-4 hover:underline">
+          <Link href="/aviso-legal" className="text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
             aviso legal
           </Link>
           .
@@ -77,11 +77,11 @@ export default function SobrePage() {
       <Section heading={<>Fale com a <Gold>gente</Gold></>}>
         <p className="max-w-2xl text-ice-70">
           Dúvidas, correções e pedidos sobre seus dados:{" "}
-          <a href={`mailto:${EMAILS.contato}`} className="text-gold underline-offset-4 hover:underline">
+          <a href={`mailto:${EMAILS.contato}`} className="text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
             {EMAILS.contato}
           </a>
           . Detalhes em{" "}
-          <Link href="/contato" className="text-gold underline-offset-4 hover:underline">
+          <Link href="/contato" className="text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
             /contato
           </Link>
           .

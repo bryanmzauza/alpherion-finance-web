@@ -10,6 +10,7 @@
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 19/09/2026 | Plano inicial a partir do site.md. Decisões: monorepo, SemVer com tags por marco, Better Auth. Auth antecipada para o início do Bloco 2 (a carteira exige sessão) |
 | 1.0     | 19/09/2026 | Nota (sem mudança de escopo): Etapa 1 entregue com Next.js 16 (site.md §3.4 diz "15+"); texto da etapa ajustado                                                    |
+| 2.0     | 21/09/2026 | Nota (sem mudança de escopo): Etapa 2.4 entregue com CSP sem nonce no site público e orçamento de JS de 170 kB gzip (site.md §7.3 e §9 revisados com a justificativa) |
 | 2.0     | 20/09/2026 | **Paridade funcional com o Status Invest** ([ADR-018](adr/ADR-018-paridade-status-invest.md)). v1.0 adiado de 25/09 para **09/10/2026**. Entram no v1.0: portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição, comunicados CVM. v1.0 dividido em quatro blocos (`v0.2.0` → `v0.4.0` → `v1.0.0`). v1.x reordenado (11 entregas) com calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento. IR na Fase 1; internacional na Fase 2 (ADR-019 pendente). Etapas 0–2 inalteradas |
 
 ## Como este plano é mantido
@@ -96,10 +97,10 @@ Meta: no ar antes do vídeo 1 (21/09). SSG/ISR, zero cookie no site público.
 
 ### 2.4 SEO, performance, acessibilidade
 
-- [ ] `metadata` por página, `lang="pt-BR"`, OG via `next/og` (navy + palavra dourada), JSON-LD `Organization` e `VideoObject`
-- [ ] `sitemap.ts`, `robots.ts`, `manifest.webmanifest`
-- [ ] CSP com nonce (middleware) + headers do §7.3
-- [ ] Lighthouse ≥ 95 no CI (`@lhci/cli`) em `/` e `/raio-x`; JS inicial < 90 kB gzip
+- [X] `metadata` por página, `lang="pt-BR"`, OG via `next/og` (navy + palavra dourada; `lib/og.tsx`, uma imagem por rota), JSON-LD `Organization` e `VideoObject`
+- [X] `sitemap.ts`, `robots.ts`, `manifest.webmanifest`
+- [X] Headers do §7.3 em `next.config.ts` — **CSP sem nonce no site público** (nonce exigiria renderização dinâmica e mataria SSG/ISR; ver §7.3 revisado); nonce só no app, Etapa 5
+- [X] Lighthouse ≥ 95 no CI (`@lhci/cli`, job `lighthouse`) em `/` e `/raio-x`; orçamento de JS **≤ 170 kB gzip** (§9 revisado: a base do Next 16 é ~150 kB); 100/100/100/100 localmente
 
 ### 2.5 Documentos obrigatórios (`docs/`)
 

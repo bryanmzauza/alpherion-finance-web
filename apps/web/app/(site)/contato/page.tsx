@@ -45,7 +45,7 @@ export default function ContatoPage() {
             <Card key={c.email} className="flex flex-col">
               <h2 className="font-display text-xl font-semibold">{c.title}</h2>
               <p className="mt-3 flex-1 text-table text-ice-70">{c.text}</p>
-              <a href={`mailto:${c.email}`} className="mt-4 break-all text-gold underline-offset-4 hover:underline">
+              <a href={`mailto:${c.email}`} className="mt-4 break-all text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
                 {c.email}
               </a>
             </Card>
@@ -54,7 +54,7 @@ export default function ContatoPage() {
         <p className="mt-8 text-table text-ice-70">
           {LEGAL_ENTITY.razaoSocial} · CNPJ {LEGAL_ENTITY.cnpj} · {LEGAL_ENTITY.endereco}, {LEGAL_ENTITY.cidadeUf}. Base
           legal e prazos na{" "}
-          <Link href="/privacidade" className="text-gold underline-offset-4 hover:underline">
+          <Link href="/privacidade" className="text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
             Política de Privacidade
           </Link>
           .

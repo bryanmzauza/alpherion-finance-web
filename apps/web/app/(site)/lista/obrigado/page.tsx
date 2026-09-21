@@ -32,7 +32,7 @@ export default function ObrigadoPage() {
           </li>
         </ul>
       </Card>
-      <Link href="/" className="mt-8 inline-block text-gold underline-offset-4 hover:underline">
+      <Link href="/" className="mt-8 inline-block text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
         ← Voltar ao início
       </Link>
     </Section>

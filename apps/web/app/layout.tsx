@@ -1,16 +1,28 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Analytics } from "@/components/site/analytics";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/content/site";
+import { env } from "@/lib/env";
 import { inter, playfair } from "./fonts";
 import "./globals.css";
 
+// Metadata base (site.md §9). SITE_URL precisa existir no build (Dockerfile: ARG SITE_URL),
+// porque URLs canônicas, OG e sitemap são resolvidas contra ela.
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(env.SITE_URL),
   title: {
-    default: "Alpherion Finance",
-    template: "%s · Alpherion Finance",
+    default: SITE_NAME,
+    template: `%s · ${SITE_NAME}`,
   },
-  description:
-    "O Alpherion lê a sua carteira — cripto, ações, FIIs, renda fixa — e devolve cinco leituras de risco, em português. Não diz o que comprar.",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: { type: "website", locale: "pt_BR", siteName: SITE_NAME },
+  twitter: { card: "summary_large_image" },
+  robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0B192C",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

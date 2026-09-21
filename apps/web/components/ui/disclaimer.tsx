@@ -9,7 +9,7 @@ export function Disclaimer({ variant = "short", className }: Props) {
     <aside aria-label="Aviso legal" className={cn("text-table text-ice-70", className)}>
       <p>
         {variant === "full" ? DISCLAIMER_FULL : DISCLAIMER_SHORT}{" "}
-        <Link href="/aviso-legal" className="text-gold underline-offset-4 hover:underline">
+        <Link href="/aviso-legal" className="text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
           Aviso legal completo
         </Link>
         .

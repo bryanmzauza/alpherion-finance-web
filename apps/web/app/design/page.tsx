@@ -19,7 +19,8 @@ const colors = [
   ["ice-70", "Texto secundário, fontes e datas", "bg-ice-70"],
   ["ok", "Semântica de risco: ok (sempre com sinal/ícone + texto)", "bg-ok"],
   ["warn", "Semântica de risco: atenção", "bg-warn"],
-  ["risk", "Semântica de risco: risco", "bg-risk"],
+  ["risk", "Semântica de risco: risco (fundos e bordas)", "bg-risk"],
+  ["risk-text", "Risco em texto pequeno (AA sobre navy-2)", "bg-risk-text"],
 ] as const;
 
 const sampleRows = [

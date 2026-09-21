@@ -11,9 +11,11 @@ import { EmailCapture } from "@/components/ui/email-capture";
 import { Gold } from "@/components/ui/gold";
 import { AUTHOR, DATA_SOURCES, DOES_AND_DOESNT, FAQ, QUADROS, READINGS, SITE_DESCRIPTION } from "@/content/site";
 import { publishedVideos } from "@/lib/videos";
+import { JsonLd } from "@/components/site/json-ld";
+import { organizationJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Alpherion Finance — Você sabe o que tem?",
+  title: { absolute: "Alpherion Finance — Você sabe o que tem?" },
   description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
 };
@@ -24,6 +26,7 @@ export default function HomePage() {
 
   return (
     <>
+      <JsonLd data={organizationJsonLd()} />
       {/* 1. Hero */}
       <Section className="pt-20 md:pt-28">
         <h1 className="max-w-3xl">
@@ -92,7 +95,7 @@ export default function HomePage() {
             </ul>
           </Card>
           <Card>
-            <h3 className="font-display text-xl font-semibold text-risk">
+            <h3 className="font-display text-xl font-semibold text-risk-text">
               <span aria-hidden="true">✕</span> Não faz
             </h3>
             <ul className="mt-4 space-y-2 text-ice-70">
@@ -141,7 +144,7 @@ export default function HomePage() {
             ? videos.map((v) => <VideoCard key={v.id} video={v} />)
             : QUADROS.map((q) => <QuadroCard key={q.slug} quadro={q} />)}
         </div>
-        <Link href="/videos" className="mt-6 inline-block text-gold underline-offset-4 hover:underline">
+        <Link href="/videos" className="mt-6 inline-block text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
           Todos os vídeos →
         </Link>
       </Section>
@@ -159,7 +162,7 @@ export default function HomePage() {
           {AUTHOR.bio.map((line) => (
             <p key={line}>{line}</p>
           ))}
-          <Link href="/sobre" className="inline-block text-gold underline-offset-4 hover:underline">
+          <Link href="/sobre" className="inline-block text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
             Sobre o Alpherion →
           </Link>
         </div>

@@ -16,6 +16,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 FROM deps AS build
 COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
+# SITE_URL entra no build: metadataBase, canônicas, OG e sitemap são resolvidos contra ela.
+ARG SITE_URL=https://alpherion.com.br
+ENV SITE_URL=$SITE_URL
 # Variáveis só para o build passar pela validação de env; em runtime vêm do .env do compose.
 ENV DATABASE_URL=postgres://build APP_ENV=prod API_SERVICE_TOKEN_WEB=build-placeholder-token-0000000000000000
 RUN pnpm --filter web build

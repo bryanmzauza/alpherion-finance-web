@@ -39,14 +39,14 @@ export default async function SairPage({ searchParams }: { searchParams: Promise
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-ice-70">
             Não encontramos esta inscrição. Use o link de descadastro do e-mail mais recente ou escreva para{" "}
-            <a href={`mailto:${EMAILS.privacidade}`} className="text-gold underline-offset-4 hover:underline">
+            <a href={`mailto:${EMAILS.privacidade}`} className="text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
               {EMAILS.privacidade}
             </a>{" "}
             que removemos por lá.
           </p>
         </>
       )}
-      <Link href="/" className="mt-8 inline-block text-gold underline-offset-4 hover:underline">
+      <Link href="/" className="mt-8 inline-block text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold">
         ← Voltar ao início
       </Link>
     </Section>

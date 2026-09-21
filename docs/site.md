@@ -431,7 +431,7 @@ A lista de e-mail (`subscribers`, status, tokens de confirmação e de descadast
 | `--gold-2` | `#D4AF37` | Hover do dourado, brilho |
 | `--ice` | `#F8F9FA` | Texto principal |
 | `--ice-70` | `rgba(248,249,250,.7)` | Texto secundário, fontes e datas |
-| `--ok` / `--warn` / `--risk` | `#4CAF7D` / `#E0A64C` / `#D9534F` | Nos cards de leitura (semântica de risco) e em variação positiva/negativa de preço, sempre com sinal/ícone + texto. Nunca como decoração |
+| `--ok` / `--warn` / `--risk` | `#4CAF7D` / `#E0A64C` / `#D9534F` | Nos cards de leitura (semântica de risco) e em variação positiva/negativa de preço, sempre com sinal/ícone + texto. Nunca como decoração. **Texto pequeno em `--risk` usa `--risk-text` `#E56E6A`** (o `#D9534F` dá 4,07 de contraste sobre `--navy-2`, abaixo do AA); fundos e bordas seguem com `--risk` |
 | Tipografia | Playfair Display 600/700 para H1–H2 e números de destaque; Inter 400/500/600 para todo o resto; **números tabulares** (`font-variant-numeric: tabular-nums`) em tabelas e indicadores | Tamanhos: H1 40/48, H2 28/36, corpo 16/26, tabelas 14/22 |
 | Grid | Container 1120 px (1280 nas páginas de ativo e screener), gutter 16 px no mobile, 24 px desktop | Mobile-first: metade do tráfego do YouTube é celular; tabelas largas rolam horizontalmente dentro do card, nunca a página |
 | Componentes base | `Button`, `Input`, `Checkbox`, `Card`, `Badge`, `Table`, `Tooltip` (definição de termo), `Disclaimer`, `EmailCapture`, `VideoEmbed` (nocookie, lazy) | Documentar em `/design` (rota só em dev) |
@@ -522,11 +522,14 @@ Privacy by design (LGPD art. 46 §2): coletar o mínimo, cifrar o que é sensív
 - nginx: `real_ip` a partir de `CF-Connecting-IP` (para rate limit e logs corretos), `client_max_body_size 5m` (arquivos da B3), `limit_req` de segurança, `server_tokens off`.
 - **Cloudflare é operador de dados** (vê IPs e tráfego). Consta na Política de Privacidade como suboperador com transferência internacional (§8.4).
 
-### 7.3 Headers HTTP (snippet único no nginx; CSP com nonce gerado pelo Next por request)
+### 7.3 Headers HTTP
+
+> **Revisado em 21/09/2026 (Etapa 2.4).** O Next envia todos os headers abaixo **exceto HSTS** (`next.config.ts` → `headers()`); o nginx acrescenta só o HSTS (depende do TLS) e **não repete** os demais — CSP duplicada é aplicada em interseção. **CSP sem nonce no site público:** nonce por request obriga renderização dinâmica de toda página no Next, o que inviabiliza o SSG da landing e o ISR com cache de borda das páginas de ativo (§9) — um nonce cacheado deixa de ser nonce. `'unsafe-inline'` cobre os scripts inline do próprio Next (é o que a documentação do framework recomenda para páginas estáticas). O app autenticado (rotas dinâmicas por natureza) ganha CSP com nonce via `proxy.ts` na Etapa 5.
 
 ```
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{nonce}' https://stats.alpherion.com.br; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://stats.alpherion.com.br; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
+Content-Security-Policy (site público): default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.alpherion.com.br; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://stats.alpherion.com.br; frame-src https://www.youtube-nocookie.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
+Content-Security-Policy (app, Etapa 5): igual, com script-src 'self' 'nonce-{nonce}' 'strict-dynamic' https://stats.alpherion.com.br
 X-Content-Type-Options: nosniff
 Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
@@ -674,7 +677,7 @@ O site não custodia, não intermedeia, não converte criptoativos. Registrar is
 
 ## 9. Performance, SEO e conteúdo
 
-- Landing 100% estática (SSG), imagens em AVIF/WebP com `next/image`, fontes com `font-display: swap` e subset latin. Alvos: LCP < 2,0 s no 4G, CLS < 0,05, JS inicial < 90 kB gzip na landing e < 150 kB nas páginas de ativo (gráfico carregado sob demanda). Lighthouse ≥ 95 em tudo.
+- Landing 100% estática (SSG), imagens em AVIF/WebP com `next/image`, fontes com `font-display: swap` e subset latin. Alvos: LCP < 2,0 s no 4G, CLS < 0,05, JS inicial **≤ 170 kB gzip** na landing e **≤ 250 kB** nas páginas de ativo (gráfico carregado sob demanda). Lighthouse ≥ 95 em tudo. *(Revisado em 21/09/2026: o alvo original de 90 kB era inatingível — o runtime do Next 16 + React 19 sozinho, sem código nosso, transfere ~150 kB gzip; o código próprio da landing são ~4 kB. O orçamento é verificado no CI pelo `@lhci/cli`.)*
 - **Páginas de ativo são o motor de SEO** (milhares de URLs). ISR com revalidação disparada pelo job `revalidate_pages` após cada carga; `sitemap` segmentado por classe (`/sitemap/acoes.xml`, `/sitemap/fiis.xml`, …) com `lastmod`; título padronizado ("PETR4 — cotação, dividendos e indicadores | Alpherion Finance"), `description` gerada a partir dos dados (sem IA), canônica em maiúsculas, JSON-LD (`Organization` na home, `Corporation` na página da empresa, `Dataset` opcional nos históricos, `VideoObject` em `/videos`, `BreadcrumbList`), links internos (setor, comparador, glossário).
 - `lang="pt-BR"`, `metadata` por página, Open Graph com imagem gerada (`next/og` funciona self-hosted) no estilo da thumbnail (navy + uma palavra dourada; nas páginas de ativo, o ticker em dourado + cotação), `robots.txt` (app: `Disallow: /`; screener com parâmetros: `noindex` para evitar explosão de URLs).
 - `/leitura` como arquivo semanal: título no padrão do canal, resumo, os números, embed do vídeo. Publicado no mesmo dia do vídeo.

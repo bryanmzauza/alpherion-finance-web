@@ -4,6 +4,8 @@ import { Section } from "@/components/site/section";
 import { Gold } from "@/components/ui/gold";
 import { QUADROS, YOUTUBE_CHANNEL_URL } from "@/content/site";
 import { publishedVideos } from "@/lib/videos";
+import { JsonLd } from "@/components/site/json-ld";
+import { videoJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Vídeos",
@@ -17,6 +19,9 @@ export default function VideosPage() {
 
   return (
     <>
+      {videos.map((v) => (
+        <JsonLd key={v.id} data={videoJsonLd(v)} />
+      ))}
       <Section className="pt-20 md:pt-28">
         <h1 className="max-w-3xl">
           Três quadros por <Gold>semana</Gold>
@@ -28,7 +33,7 @@ export default function VideosPage() {
           href={YOUTUBE_CHANNEL_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-6 inline-block text-gold underline-offset-4 hover:underline"
+          className="mt-6 inline-block text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold"
         >
           Canal no YouTube →
         </a>

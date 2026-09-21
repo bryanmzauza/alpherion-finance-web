@@ -13,7 +13,7 @@ export function Badge({ tone = "neutral", className, ...props }: HTMLAttributes<
         tone === "gold" && "border-gold/40 text-gold",
         tone === "ok" && "border-ok/40 text-ok",
         tone === "warn" && "border-warn/40 text-warn",
-        tone === "risk" && "border-risk/40 text-risk",
+        tone === "risk" && "border-risk/40 text-risk-text",
         className,
       )}
       {...props}
