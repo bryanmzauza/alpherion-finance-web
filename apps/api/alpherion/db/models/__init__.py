@@ -22,6 +22,7 @@ from alpherion.db.models.company import (
 )
 from alpherion.db.models.crypto import CryptoAsset, CryptoDaily, CryptoMetric
 from alpherion.db.models.etl import DataSource, EtlRun
+from alpherion.db.models.events import MarketEvent
 from alpherion.db.models.fii import FiiReport
 from alpherion.db.models.index import IndexComposition, IndexDaily, MarketIndex
 from alpherion.db.models.indicators import IndicatorDaily
@@ -45,6 +46,7 @@ __all__ = [
     "IndexDaily",
     "IndicatorDaily",
     "MacroSeries",
+    "MarketEvent",
     "MarketIndex",
     "Sector",
     "Security",

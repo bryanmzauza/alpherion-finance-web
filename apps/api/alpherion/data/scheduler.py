@@ -46,6 +46,7 @@ from alpherion.data.jobs import (
     cvm_fii_reports,
     cvm_statements,
     indicators_rebuild,
+    market_events_rebuild,
     revalidate_pages,
     tesouro_daily,
 )
@@ -97,6 +98,7 @@ SCHEDULE: Final[tuple[Scheduled, ...]] = (
     Scheduled("cvm_statements", cvm_statements.run, hour=4, day_of_month=20),
     # Derivados, por último.
     Scheduled("indicators_rebuild", indicators_rebuild.run, hour=22),
+    Scheduled("market_events_rebuild", market_events_rebuild.run, hour=22, minute=15),
     Scheduled("revalidate_pages", revalidate_pages.run, hour=22, minute=30),
     # Cripto (só dev até a fonte licenciada — ADR-017 trava em produção).
     *tuple(

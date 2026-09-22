@@ -10,6 +10,7 @@
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 19/09/2026 | Plano inicial a partir do site.md. Decisões: monorepo, SemVer com tags por marco, Better Auth. Auth antecipada para o início do Bloco 2 (a carteira exige sessão) |
 | 1.0     | 19/09/2026 | Nota (sem mudança de escopo): Etapa 1 entregue com Next.js 16 (site.md §3.4 diz "15+"); texto da etapa ajustado                                                    |
+| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): `market_events` entregue como **tabela** e não como view materializada (site.md §4.3). Motivo: a agenda macro vem de um arquivo versionado, que uma view não alcança; e o rebuild por janela do job seria impossível com `REFRESH MATERIALIZED VIEW`, que refaz a agenda inteira |
 | 2.0     | 22/09/2026 | Nota (sem mudança de escopo): Etapa 3.2 — fontes da CVM entregues (cadastro, DFP/ITR, FCA, informes de FII, IPE). O leitor do FRE (free float) fica para a entrega dos indicadores, que é onde o número é usado; até lá `company_facts.free_float` fica `null` e a página mostra "—" |
 | 2.0     | 22/09/2026 | Nota (sem mudança de escopo): Etapa 2.6 entregue — compose de produção, nginx, scripts de operação, `deploy.yml` e runbook de deploy. Falta só a parte manual (domínio, Cloudflare, VPS, e-mail) |
 | 2.0     | 21/09/2026 | Nota (sem mudança de escopo): Etapa 2.4 entregue com CSP sem nonce no site público e orçamento de JS de 170 kB gzip (site.md §7.3 e §9 revisados com a justificativa) |
@@ -131,7 +132,7 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 
 - [X] Tabelas do §4.3: `securities` (com `market`, `sector_slug`, `etf_index_slug`, `bdr_ratio`), `daily_quotes` (particionada por ano, 1986→ano+1), `corporate_actions`, `financial_statements`, `company_facts`, `indicators_daily`, `fii_reports`, `treasury_bonds`, `treasury_daily`, `macro_series`, `crypto_assets/daily/metrics`, `etl_runs`, `data_sources`
 - [X] Tabelas novas do portal: `indices`, `index_daily`, `index_compositions`, `company_documents`, `sectors`
-- [ ] `market_events` (view materializada) — entra junto com o job `market_events_rebuild` (3.3)
+- [X] `market_events` — **tabela**, não view materializada: a agenda macro vem de um arquivo versionado e view não alcança arquivo; a tabela ainda permite rebuild por janela, que a view não permitiria. Migration aditiva `7c1f4a2b9e33`
 - [X] Índices em todo campo filtrável; busca por nome com `pg_trgm` + `unaccent` (via `market.immutable_unaccent`, porque `unaccent()` não é IMMUTABLE); `statement_timeout 5s` no usuário `api` (já no `init.sql`)
 - [X] `data_sources` semeada na migration com o resultado da verificação de termos: B3 e CoinGecko **sem** `terms_checked_at` (bloqueadas, ADR-017)
 - [X] Flags `MARKET_B3_PRICES_ENABLED` e `MARKET_CRYPTO_ENABLED` em `settings.py` (padrão `false`)
@@ -146,12 +147,12 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 - [X] `tesouro.py` (CSV do Tesouro Transparente, decimal pt-BR, slug estável por vencimento) e `bcb.py` (códigos SGS documentados num só lugar; HTML do SGS fora do ar não vira série vazia) — **fontes liberadas** (ODbL / dados abertos)
 - [X] `coingecko.py` (só dev até a fonte licenciada — ADR-017; 429 dito com todas as letras, dia sem valor fica sem valor)
 - [X] `adjust.py` (fator acumulado de proventos, desdobramento, grupamento e bonificação; evento sem fechamento `cum` é ignorado) e `indicators.py` (fórmulas; `null` **com motivo** quando falta entrada; `FORMULAS_VERSION` em `inputs`) + `cvm_accounts.py` (plano de contas → conceitos; depreciação por nome, porque a CVM não a padroniza). Testes contra casos calculados à mão
-- [ ] `events.py`: monta `market_events` a partir de `corporate_actions`, `company_documents` e `content/agenda-macro.json`
+- [X] `events.py`: monta `market_events` a partir de `corporate_actions` (dois eventos por provento: data-com e pagamento), `company_documents` e `data/content/agenda-macro.json` (com schema; item sem `source_url` é descartado). O arquivo fica na API, não no `web` — o worker é quem monta a agenda
 - [X] Proteções §7.5 em `sources/http.py`: lista fechada de hosts (revalidada a cada redirect), limite de download pelo que chega (não pelo `Content-Length`), limite de descompressão e neutralização de caminho de fuga no ZIP — com testes
 
 ### 3.3 Jobs (idempotentes, lock no Redis, registram `etl_runs`)
 
-- [X] `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `b3_index_composition`, `cvm_companies`, `cvm_statements` (DFP anual), `cvm_fii_reports`, `cvm_documents`, `tesouro_daily`, `bcb_series`, `coingecko_prices`, `coingecko_history`, `adjust_factors`, `indicators_rebuild`, `revalidate_pages` — todos sobre `jobs/base.py` (lock no Redis, `etl_runs` no `finally`, trava de licença lida de `data_sources`) e `db/upsert.py`. **Falta `market_events_rebuild`**, que entra junto com a view materializada `market_events` (3.1)
+- [X] `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `b3_index_composition`, `cvm_companies`, `cvm_statements` (DFP anual), `cvm_fii_reports`, `cvm_documents`, `tesouro_daily`, `bcb_series`, `coingecko_prices`, `coingecko_history`, `adjust_factors`, `indicators_rebuild`, `market_events_rebuild`, `revalidate_pages` — todos sobre `jobs/base.py` (lock no Redis, `etl_runs` no `finally`, trava de licença lida de `data_sources`) e `db/upsert.py`
 - [X] Agendamento em `data/scheduler.py` (é o `command` do serviço `data` no compose): uma tabela `SCHEDULE` com a ordem do dia — preço → eventos → ajuste → fundamentos → indicadores → revalidação. O cron do host continua possível (cada job é `python -m alpherion.data.jobs.<job>`); num VPS só, o agendador dentro do container evita duplicar configuração
 - [ ] `infra/scripts/backfill-market.sh` com `--sample` (20 ações, 10 FIIs, 5 ETFs, 5 BDRs, 3 índices, Tesouro, top 20 cripto, 3 anos, IPE de 90 dias) para dev
 - [X] `docs/runbooks/reprocessar-job.md`

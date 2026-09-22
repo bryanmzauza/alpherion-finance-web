@@ -18,7 +18,9 @@ import pytest
 import alpherion.data.jobs as jobs_package
 
 #: Jobs que só leem o banco: não baixam nada, então não têm fonte a declarar.
-DERIVED = frozenset({"adjust_factors", "indicators_rebuild", "revalidate_pages"})
+DERIVED = frozenset(
+    {"adjust_factors", "indicators_rebuild", "market_events_rebuild", "revalidate_pages"}
+)
 
 
 def _job_modules() -> list[str]:
@@ -73,6 +75,7 @@ def test_jobs_do_plano_existem() -> None:
         "coingecko_history",
         "adjust_factors",
         "indicators_rebuild",
+        "market_events_rebuild",
         "revalidate_pages",
     }
     assert esperados <= set(_job_modules())

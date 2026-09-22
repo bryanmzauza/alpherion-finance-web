@@ -1,0 +1,6 @@
+{
+  "$schema": "./agenda-macro.schema.json",
+  "ano": 2026,
+  "nota": "Agenda macro do ano — Copom, IPCA/IPCA-15, IGP-M, FOMC e vencimentos. Preenchida na Etapa 4.3 do plano, um item por data divulgada, cada um com o `source_url` do calendário oficial que a anuncia. Item sem `source_url` é descartado pelo pipeline: a agenda só tem fato com fonte.",
+  "eventos": []
+}

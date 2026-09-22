@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agenda macro",
+  "description": "Eventos macroeconômicos com data divulgada por fonte oficial. Sem estimativa, sem projeção de consenso, sem 'espera-se que' — só o que uma fonte anunciou, com o link que prova.",
+  "type": "object",
+  "required": ["ano", "eventos"],
+  "properties": {
+    "ano": { "type": "integer", "minimum": 2020 },
+    "eventos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["data", "titulo", "source_url"],
+        "properties": {
+          "data": { "type": "string", "pattern": "^\d{4}-\d{2}-\d{2}$" },
+          "titulo": { "type": "string", "minLength": 3, "maxLength": 160 },
+          "detalhe": { "type": ["string", "null"], "maxLength": 300 },
+          "source_url": { "type": "string", "format": "uri" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

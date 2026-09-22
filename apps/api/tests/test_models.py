@@ -45,6 +45,9 @@ def test_tabelas_do_site_md_existem() -> None:
         "index_compositions",
         "company_documents",
         "sectors",
+        # A agenda: tabela, não view materializada — a agenda macro vem de arquivo,
+        # e view não alcança arquivo (ver db/models/events.py).
+        "market_events",
     }
     presentes = {t.name for t in TABLES.values()}
     assert presentes >= esperadas, f"faltam: {sorted(esperadas - presentes)}"
