@@ -63,6 +63,11 @@ class Settings(BaseSettings):
     market_b3_prices_enabled: bool = False
     market_crypto_enabled: bool = False
 
+    # Revalidação de páginas do Next (job `revalidate_pages`). É o único ponto em que o
+    # worker fala com o `web`, e manda caminho, nunca dado.
+    web_revalidate_url: str = ""
+    web_revalidate_token: str = ""
+
     @property
     def is_prod(self) -> bool:
         return self.app_env == "prod"
