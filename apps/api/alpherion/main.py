@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from alpherion.db.session import get_engine
-from alpherion.routers import health
+from alpherion.routers import health, securities
 from alpherion.settings import get_settings
 
 
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
             allow_headers=["Authorization", "Content-Type"],
         )
     app.include_router(health.router, prefix="/v1")
+    app.include_router(securities.router, prefix="/v1")
     return app
 
 

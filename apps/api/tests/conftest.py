@@ -11,12 +11,15 @@ from alpherion.settings import get_settings
 
 WEB_TOKEN = "t" * 43
 READONLY_TOKEN = "r" * 43
+#: Cliente sem `market:read` — existe para provar que o escopo é exigido de verdade.
+IMPORTS_TOKEN = "i" * 43
 
 # Definido antes de qualquer `get_settings()`: os testes não leem o .env da raiz.
 os.environ["API_SERVICE_TOKENS"] = json.dumps(
     {
         "web": {"token": WEB_TOKEN, "scopes": ["analyses:write", "market:read"]},
         "readonly": {"token": READONLY_TOKEN, "scopes": ["market:read"]},
+        "imports": {"token": IMPORTS_TOKEN, "scopes": ["imports:write"]},
     }
 )
 os.environ["APP_ENV"] = "test"

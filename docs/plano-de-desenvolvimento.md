@@ -160,7 +160,7 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 ### 3.4 Endpoints de mercado
 
 - [ ] `GET /v1/market/overview` · `/v1/market/strip` · `/v1/market/movers` (métrica de lista fechada, `min_volume`) · `/v1/market/events`
-- [ ] `/v1/securities` (lista + busca; `type=stock|fii|etf|bdr`; presets de ordenação; paginação ≤ 100) · `/v1/securities/{ticker}` · `/history` · `/dividends` · `/events` · `/documents` · `/financials?period=annual`
+- [X] `/v1/securities` (lista + busca; `type=stock|fii|etf|bdr`; ordenação de lista fechada, padrão liquidez; paginação ≤ 100) · `/v1/securities/{ticker}` · `/history` · `/dividends` · `/events` · `/documents` · `/financials?period=annual` · `/v1/assets/search`
 - [ ] `/v1/sectors` · `/v1/sectors/{slug}` · `/v1/indices` · `/v1/indices/{slug}` · `/composition` · `/history`
 - [ ] `/v1/treasury*` · `/v1/crypto*` (+ `/correlations`) · `/v1/quotes` · `/v1/assets/search` (todas as classes + índices, agrupado por classe)
 - [ ] `POST /v1/market/weekly-reading` (porta de `ferramentas/leitura-semanal.py`)
