@@ -24,7 +24,7 @@ from functools import lru_cache
 from typing import Any, Final
 
 import redis.asyncio as redis_async
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
 from alpherion.settings import get_settings
 
@@ -41,6 +41,7 @@ TTL: Final[dict[str, int]] = {
     "list": 900,
     "events": 1800,  # agenda: muda uma vez por dia
     "reference": 3600,  # cadastro, setores, índices
+    "overview": 300,  # o portal inteiro: o item mais volátil manda no TTL
 }
 
 
@@ -92,6 +93,31 @@ async def cached[Model: BaseModel](
     value = await loader()
     try:
         await client.setex(cache_key, TTL.get(family, 300), value.model_dump_json())
+    except Exception as error:  # noqa: BLE001
+        logger.warning("cache indisponível na escrita de %s: %s", cache_key, error)
+    return value
+
+
+async def cached_list[Model: BaseModel](
+    family: str,
+    *parts: object,
+    model: type[Model],
+    loader: Callable[[], Awaitable[list[Model]]],
+) -> list[Model]:
+    """Mesma coisa para respostas que são listas (faixa, histórico, Tesouro, cripto)."""
+    cache_key = key(family, *parts)
+    adapter: TypeAdapter[list[Model]] = TypeAdapter(list[model])  # type: ignore[valid-type]
+    client = get_client()
+    try:
+        raw = await client.get(cache_key)
+        if raw:
+            return adapter.validate_json(raw)
+    except Exception as error:  # noqa: BLE001
+        logger.warning("cache indisponível na leitura de %s: %s", cache_key, error)
+
+    value = await loader()
+    try:
+        await client.setex(cache_key, TTL.get(family, 300), adapter.dump_json(value).decode())
     except Exception as error:  # noqa: BLE001
         logger.warning("cache indisponível na escrita de %s: %s", cache_key, error)
     return value

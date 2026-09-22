@@ -20,6 +20,9 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versioname
   - A trava do ADR-017 é **por origem**: índice da B3 e cripto travam, Selic e IPCA do BCB e o Tesouro (ODbL) saem sempre — `/tesouro` é a única página de preço que não depende da licença da B3.
   - Papel desconhecido em `/v1/quotes` volta na lista com `price: null` e motivo, em vez de sumir: o app precisa saber que perguntou por algo que não temos.
   - 15 testes do portal.
+  - Cache ligado às rotas (`cached`/`cached_list`): o que vai ao Redis é exatamente o que foi servido, e a chave carrega o estado das flags — um cache aquecido não sobrevive a uma mudança de licença. Redis fora do ar não derruba a resposta.
+  - Redis falso nos testes (`conftest.FakeRedisAsync`): sem ele, cada rota com cache esperaria o timeout do socket e a suíte passava de 1,3 s para 35 s. O caminho "Redis fora do ar" tem teste próprio.
+  - 8 testes do cache.
 - Etapa 3.3 — carga inicial do schema `market`:
   - `data/backfill.py`: a ordem das etapas e os dois perfis. `--sample` (20 ações, 10 FIIs, 5 ETFs, 5 BDRs, 3 índices, Tesouro, 20 cripto, 3 anos, 90 dias de IPE) roda em minutos e deixa um banco de dev pequeno — o filtro de papéis no COTAHIST anual é o que faz a diferença. `--full` é o que roda uma vez em produção antes da `v0.2.0`. Etapa que falha não aborta as demais, e o resumo final diz o comando para reexecutar só o que falhou; etapa pulada pelo ADR-017 não conta como falha.
   - `cotahist_daily.run_year()` para o backfill, com filtro por papel.

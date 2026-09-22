@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from alpherion.auth import Caller, require_scopes
 from alpherion.db.session import get_session
-from alpherion.market import repository, schemas
+from alpherion.market import cache, repository, schemas
 from alpherion.market.flags import Gate
 from alpherion.settings import Settings, get_settings
 
@@ -91,15 +91,22 @@ async def list_securities(
 @router.get("/securities/{ticker}", response_model=schemas.SecurityDetail)
 async def get_security(session: SessionDep, gate: GateDep, ticker: str) -> schemas.SecurityDetail:
     """Perfil, cabeçalho de preço e indicadores — cada bloco com a sua própria fonte."""
-    detail = await repository.get_security(session, ticker)
-    if detail is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"papel não encontrado: {ticker}")
-    return detail.model_copy(
-        update={
-            "price": gate.apply(detail.price),
-            "indicators": gate.apply(detail.indicators),
-        }
-    )
+    code = ticker.strip().upper()
+
+    async def load() -> schemas.SecurityDetail:
+        detail = await repository.get_security(session, code)
+        if detail is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"papel não encontrado: {ticker}")
+        # O que vai para o cache é o que foi servido: a chave já carrega o estado das
+        # flags, então um cache aquecido não sobrevive a uma mudança de licença.
+        return detail.model_copy(
+            update={
+                "price": gate.apply(detail.price),
+                "indicators": gate.apply(detail.indicators),
+            }
+        )
+
+    return await cache.cached("security", code, model=schemas.SecurityDetail, loader=load)
 
 
 @router.get("/securities/{ticker}/history", response_model=list[schemas.Quote])
@@ -111,8 +118,14 @@ async def get_history(
     adjusted: bool = True,
 ) -> list[schemas.Quote]:
     """Histórico diário. Ajustado por proventos e eventos, salvo se `adjusted=false`."""
-    return gate.apply_all(
-        await repository.history(session, ticker, range_=range, adjusted=adjusted)
+
+    async def load() -> list[schemas.Quote]:
+        return gate.apply_all(
+            await repository.history(session, ticker, range_=range, adjusted=adjusted)
+        )
+
+    return await cache.cached_list(
+        "list", ticker.upper(), range, adjusted, model=schemas.Quote, loader=load
     )
 
 
