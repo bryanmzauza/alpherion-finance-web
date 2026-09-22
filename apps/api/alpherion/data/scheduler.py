@@ -45,6 +45,7 @@ from alpherion.data.jobs import (
     cvm_documents,
     cvm_fii_reports,
     cvm_statements,
+    freshness_alert,
     indicators_rebuild,
     market_events_rebuild,
     revalidate_pages,
@@ -100,6 +101,8 @@ SCHEDULE: Final[tuple[Scheduled, ...]] = (
     Scheduled("indicators_rebuild", indicators_rebuild.run, hour=22),
     Scheduled("market_events_rebuild", market_events_rebuild.run, hour=22, minute=15),
     Scheduled("revalidate_pages", revalidate_pages.run, hour=22, minute=30),
+    # Depois de tudo: o alerta olha o que deveria ter rodado no dia.
+    Scheduled("freshness_alert", freshness_alert.run, hour=23, minute=30),
     # Cripto (só dev até a fonte licenciada — ADR-017 trava em produção).
     *tuple(
         Scheduled("coingecko_prices", coingecko_prices.run, hour=hour) for hour in range(0, 24, 3)

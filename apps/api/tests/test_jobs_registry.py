@@ -19,7 +19,13 @@ import alpherion.data.jobs as jobs_package
 
 #: Jobs que só leem o banco: não baixam nada, então não têm fonte a declarar.
 DERIVED = frozenset(
-    {"adjust_factors", "indicators_rebuild", "market_events_rebuild", "revalidate_pages"}
+    {
+        "adjust_factors",
+        "freshness_alert",
+        "indicators_rebuild",
+        "market_events_rebuild",
+        "revalidate_pages",
+    }
 )
 
 

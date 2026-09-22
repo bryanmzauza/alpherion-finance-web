@@ -178,7 +178,7 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 
 ### 3.6 Operação
 
-- [ ] Alerta de frescor (endpoint interno lendo `etl_runs` do dia; alerta se `cotahist_daily` não rodou até 21h ou se `cvm_documents`/`b3_index_composition` falharam 2 dias seguidos) → Telegram
+- [X] Alerta de frescor: as regras em `data/freshness.py` (puras, 16 testes), o endpoint `GET /v1/internal/freshness` (503 quando há problema — monitor entende código HTTP) para o Uptime Kuma, e o job `freshness_alert` para o Telegram. Os dois usam as mesmas regras; o endpoint existe porque o alerta do worker é justamente o que para de chegar quando o worker morre
 - [ ] `backfill-market.sh` completo rodado em produção **antes** da tag
 
 **Pronto quando:** `/acoes/PETR4`, `/fiis/MXRF11`, `/etfs/BOVA11`, `/bdrs/AAPL34`, `/indices/ibovespa` (com composição datada), `/tesouro/…`, `/cripto/bitcoin` no ar com dados reais; comunicados da PETR4 listados com link para a CVM; todo número com `SourceBadge`; testes de parser/fórmulas verdes; jobs no cron; sitemap no Search Console. → **tag `v0.2.0`**.

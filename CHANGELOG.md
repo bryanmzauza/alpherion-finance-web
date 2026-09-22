@@ -8,6 +8,11 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versioname
 - Plano de desenvolvimento **v2.0** — paridade funcional com o Status Invest ([ADR-018](docs/adr/ADR-018-paridade-status-invest.md)): v1.0 adiado de 25/09 para **09/10/2026** e dividido em quatro tags (`v0.2.0` pipeline + páginas, `v0.3.0` portal, `v0.4.0` carteira/B3, `v1.0.0` análise). `docs/site.md` ganha o portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição e comunicados CVM (v1.0); calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento (v1.x); imposto de renda (Fase 1); internacional com provedor licenciado (Fase 2, ADR-019 pendente). Fontes, tabelas, endpoints e módulos (§14) correspondentes. Roadmap sincronizado com a fonte (`alpherion-finance-yt`).
 
 ### Adicionado
+- Etapa 3.6 — alerta de frescor do pipeline:
+  - `data/freshness.py`: as regras do §3.6, puras e testáveis. O modo de falha que elas pegam é o **silêncio** — um job que para de rodar não quebra nada visível, a página fica no ar com o número de ontem. Fim de semana, job `skipped` (feriado) e falha isolada de fonte externa **não** alertam: um alerta que chega por qualquer coisa deixa de ser lido antes de importar.
+  - `GET /v1/internal/freshness` (503 quando há problema — monitor entende código HTTP, não JSON) para o Uptime Kuma, e o job `freshness_alert` para o Telegram. Os dois aplicam exatamente as mesmas regras; o endpoint existe porque o alerta do worker é justamente o que para de chegar quando o worker morre.
+  - Sem Telegram configurado, o job termina como `skipped` com o motivo — em dev não há para onde mandar, e isso não é falha.
+  - 16 testes, a maioria sobre o que **não** deve alertar.
 - Etapa 3.5 — páginas de mercado (`app/(market)/`):
   - `lib/market.ts`: o único caminho do `web` para os dados de mercado (§3.2 — o `web` nunca lê o schema `market`). `optional()` faz um bloco que falha virar "—" em vez de derrubar a página: uma página de ativo não pode sumir porque a CVM não respondeu.
   - `lib/format.ts`: **ausência vira "—", nunca zero** — zero é um número e o leitor o lê como um. `Decimal` chega como string e só vira `number` na hora de formatar.

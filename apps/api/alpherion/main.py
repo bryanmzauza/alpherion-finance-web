@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from alpherion.db.session import get_engine
-from alpherion.routers import health, market, securities
+from alpherion.routers import health, internal, market, securities
 from alpherion.settings import get_settings
 
 
@@ -41,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/v1")
     app.include_router(securities.router, prefix="/v1")
     app.include_router(market.router, prefix="/v1")
+    app.include_router(internal.router, prefix="/v1")
     return app
 
 
