@@ -11,7 +11,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "lighthouse": "lhci autorun"
+    "lighthouse": "lhci autorun",
+    "build:migrator": "esbuild scripts/migrate.mjs --bundle --platform=node --format=esm --target=node22 --outfile=dist/migrate.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
@@ -37,6 +38,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",

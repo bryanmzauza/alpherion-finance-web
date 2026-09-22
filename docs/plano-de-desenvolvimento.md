@@ -10,6 +10,7 @@
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 19/09/2026 | Plano inicial a partir do site.md. Decisões: monorepo, SemVer com tags por marco, Better Auth. Auth antecipada para o início do Bloco 2 (a carteira exige sessão) |
 | 1.0     | 19/09/2026 | Nota (sem mudança de escopo): Etapa 1 entregue com Next.js 16 (site.md §3.4 diz "15+"); texto da etapa ajustado                                                    |
+| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): Etapa 2.6 entregue — compose de produção, nginx, scripts de operação, `deploy.yml` e runbook de deploy. Falta só a parte manual (domínio, Cloudflare, VPS, e-mail) |
 | 2.0     | 21/09/2026 | Nota (sem mudança de escopo): Etapa 2.4 entregue com CSP sem nonce no site público e orçamento de JS de 170 kB gzip (site.md §7.3 e §9 revisados com a justificativa) |
 | 2.0     | 20/09/2026 | **Paridade funcional com o Status Invest** ([ADR-018](adr/ADR-018-paridade-status-invest.md)). v1.0 adiado de 25/09 para **09/10/2026**. Entram no v1.0: portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição, comunicados CVM. v1.0 dividido em quatro blocos (`v0.2.0` → `v0.4.0` → `v1.0.0`). v1.x reordenado (11 entregas) com calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento. IR na Fase 1; internacional na Fase 2 (ADR-019 pendente). Etapas 0–2 inalteradas |
 
@@ -104,22 +105,26 @@ Meta: no ar antes do vídeo 1 (21/09). SSG/ISR, zero cookie no site público.
 
 ### 2.5 Documentos obrigatórios (`docs/`)
 
-- [ ] `ropa.md` v1 · `runbooks/incidente.md` · `runbooks/restore.md` · `runbooks/rotacao-de-chave.md`
-- [ ] `fontes-de-dados.md`: termos de CVM (Dados Abertos, IPE, Fundos), Tesouro, BCB, CoinGecko **e verificação da B3** (§8.10: COTAHIST, listagem, eventos **e carteiras teóricas de índices**) → decide COTAHIST vs provedor licenciado → **ADR-017**
+- [X] `ropa.md` v1 · `runbooks/incidente.md` · `runbooks/restore.md` · `runbooks/rotacao-de-chave.md`
+- [X] `fontes-de-dados.md`: termos de CVM (Dados Abertos, IPE, Fundos), Tesouro, BCB, CoinGecko **e verificação da B3** (§8.10: COTAHIST, listagem, eventos **e carteiras teóricas de índices**) → **ADR-017 (proposta)**: B3 exige licença (termos do site + Política de Consumo 2026) e o CoinGecko Demo não é comercial → preço e cripto ficam atrás de feature flag até a licença; e-mail de consulta à B3 rascunhado em `docs/fontes-de-dados/email-b3-licenca.md`
+- [ ] **Bryan:** enviar o e-mail à B3, decidir a opção de lançamento do ADR-017 (A/B/C) e a fonte de cripto (CoinGecko Analyst ou exchange); registrar a resposta em `fontes-de-dados.md` e mudar o ADR para "aceita"
 
 ### 2.6 Infra de produção (`infra/`)
 
-- [ ] `compose.yml` (nginx, web, api, data, postgres, redis, umami, listmonk, uptime-kuma; redes `edge`/`internal`; só nginx publica 80/443; volume separado para `market`)
-- [ ] `nginx/sites/*.conf`, `snippets/security-headers.conf`, `cloudflare-real-ip.conf`, `cache-market.conf`
-- [ ] `scripts/bootstrap-vps.sh`, `update-cloudflare-ips.sh`, `deploy.sh`, `backup.sh` (pg_dump → age → S3), `restore-test.sh`
-- [ ] `.github/workflows/deploy.yml` (tag `v*` → build → GHCR → ssh → `compose pull && up -d` → migrações → smoke test)
-- [ ] Manual: Registro.br + DNSSEC · Cloudflare (proxy, TLS Full strict, Authenticated Origin Pulls, WAF, rate limit) · SPF/DKIM/DMARC (apex e `news.`) · provedor SMTP escolhido · Umami · Uptime Kuma em `/` · backup rodando + **um restore testado**
+- [X] `compose.yml` (nginx, web, api, data, postgres, redis, umami, listmonk, uptime-kuma; **três** redes — `edge`, `internal` sem saída e `egress` para as fontes externas; só nginx publica 80/443; volume separado para `market`; volume de log do nginx para os 6 meses do Marco Civil)
+- [X] `nginx/nginx.conf`, `sites/*.conf` (site, app, api, serviços, default que fecha), `snippets/` (`tls.conf`, `security-headers.conf` **só com HSTS** — o resto vem do Next, §7.3 —, `cache-market.conf`), `cloudflare/real-ip.conf`. Upstreams por variável + resolver do Docker: um serviço fora não impede o nginx de subir. Validado com `nginx -t`
+- [X] `scripts/bootstrap-vps.sh`, `update-cloudflare-ips.sh` (nginx + ufw), `deploy.sh` (backup → migrações → up → healthcheck → smoke test → rollback), `backup.sh` (pg_dump → age → S3, manifesto de contagens, alerta no Telegram), `restore-test.sh` (Postgres efêmero + conferência). Todos passam no `shellcheck`
+- [X] `apps/web/scripts/migrate.mjs` + cópia das migrations na imagem: o standalone não tem `drizzle-kit` (devDependency). Testado contra o Postgres de dev, mesma tabela de controle do `pnpm db:migrate`
+- [X] `.github/workflows/deploy.yml` (tag `v*` → lint/typecheck/test → build → GHCR → environment `production` → ssh → `deploy.sh`)
+- [ ] Manual: **checklist completo em [`docs/runbooks/deploy.md`](runbooks/deploy.md)** — Registro.br + DNSSEC · Cloudflare (proxy, TLS Full strict, Authenticated Origin Pulls, WAF, rate limit, Access nos painéis) · SPF/DKIM/DMARC (apex e `news.`) · provedor SMTP escolhido · VPS + `bootstrap-vps.sh` · Umami · Uptime Kuma · backup rodando + **um restore testado**
 
 **Pronto quando:** `alpherion.com.br` no ar com as páginas da Fase 0; um e-mail real confirmado por double opt-in; securityheaders A+; SSL Labs A+; Lighthouse ≥ 95; `fontes-de-dados.md` com a B3 verificada. → **tag `v0.1.0`**.
 
 ## Etapa 3 — v1.0 Bloco 1: pipeline de dados + páginas de ativo → `v0.2.0` · meta 28/09
 
 Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. Tudo na API; o `web` nunca lê `market` direto. Cobre **todas as classes listadas na B3** (ações, units, FIIs, ETFs, BDRs, índices) mais Tesouro e cripto — o portal da Etapa 4 só monta em cima disso.
+
+> **Condição do ADR-017:** cotação, histórico, indicadores de preço, índices e cripto só vão a produção com licença registrada em `fontes-de-dados.md`. Até lá ficam atrás das flags `MARKET_B3_PRICES_ENABLED` e `MARKET_CRYPTO_ENABLED` (padrão `false` em produção) e **toda página e componente de mercado precisa renderizar com `price = null`** ("—" com o motivo). O pipeline e os jobs são construídos normalmente (uso em dev não é distribuição).
 
 ### 3.1 Schema `market` (SQLAlchemy + Alembic)
 
@@ -154,6 +159,7 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 - [ ] `/v1/treasury*` · `/v1/crypto*` (+ `/correlations`) · `/v1/quotes` · `/v1/assets/search` (todas as classes + índices, agrupado por classe)
 - [ ] `POST /v1/market/weekly-reading` (porta de `ferramentas/leitura-semanal.py`)
 - [ ] Cache Redis (cotação 5 min; strip 5 min; movers 5 min); todo bloco de resposta com `source`, `document`, `updated_at`
+- [ ] Flags `MARKET_B3_PRICES_ENABLED` / `MARKET_CRYPTO_ENABLED` na API: com `false`, campos de preço vêm `null` com `reason`; `data_sources.terms_checked_at` vazio bloqueia o job em produção (ADR-017)
 
 ### 3.5 Páginas de mercado (`app/(market)/`, ISR, container 1280)
 
@@ -320,7 +326,7 @@ Uma tag por entrega, nesta ordem (alternando SEO/dado e retenção/carteira). Ca
 | Risco                                                        | Como o plano lida                                                                                                                                       |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Prazo: Fase 0 em 1 dia e v1.0 em 19 dias, uma pessoa          | A ordem dos blocos não muda; `v0.1.0` sai primeiro de qualquer forma; `v0.2.0` e `v0.3.0` são publicáveis sozinhos (o portal já é produto antes do app) |
-| Termos da B3 (§8.10) podem exigir licença para cotações e carteiras teóricas | Decisão na Etapa 2.5 (ADR-017),**antes** de codar o parser; se preciso, `cotahist_daily` e `b3_index_composition` viram jobs sobre provedor licenciado sem mudar o schema |
+| Termos da B3 exigem licença para cotações e carteiras teóricas (verificado em 21/09 — ADR-017); CoinGecko Demo não é comercial | Preço e cripto atrás de feature flag até a licença; páginas publicáveis sem preço; consulta à B3 enviada; custo fixo previsto (B3 ≥ R$ 320/mês; cripto ≈ US$ 129/mês). O canal de acesso (arquivos, UP2DATA, distribuidor) troca sem mudar o schema |
 | Endpoints não documentados da B3 (listagem, eventos, carteira teórica) mudam sem aviso | Fallback por fonte (CVM para cadastro; última carteira com data para índices); alerta de frescor cobre 2 dias seguidos de falha |
 | Volume do IPE e (v1.x) dos informes de fundos                 | Carga incremental por data; partição por ano; `--sample` limita a 90 dias em dev                                                                        |
 | Header dinâmico (faixa + busca) pode quebrar a landing estática ou o zero cookie | `MarketStrip` é server component com cache de 5 min e fallback "—"; busca carrega no foco; testes de zero cookie e de orçamento de JS no CI |

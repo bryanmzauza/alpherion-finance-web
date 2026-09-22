@@ -8,6 +8,16 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versioname
 - Plano de desenvolvimento **v2.0** — paridade funcional com o Status Invest ([ADR-018](docs/adr/ADR-018-paridade-status-invest.md)): v1.0 adiado de 25/09 para **09/10/2026** e dividido em quatro tags (`v0.2.0` pipeline + páginas, `v0.3.0` portal, `v0.4.0` carteira/B3, `v1.0.0` análise). `docs/site.md` ganha o portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição e comunicados CVM (v1.0); calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento (v1.x); imposto de renda (Fase 1); internacional com provedor licenciado (Fase 2, ADR-019 pendente). Fontes, tabelas, endpoints e módulos (§14) correspondentes. Roadmap sincronizado com a fonte (`alpherion-finance-yt`).
 
 ### Adicionado
+- Etapa 2.6 — infra de produção:
+  - `infra/compose.yml`: nginx, web, api, data, postgres, redis, listmonk, umami e uptime-kuma; redes `edge` (borda), `internal` (sem saída para a internet) e `egress` (fontes externas); healthchecks; volume separado para o schema `market` e volume de log do nginx (6 meses, Marco Civil).
+  - `infra/nginx/`: `nginx.conf` (real-ip da Cloudflare, rate limit, cache de borda), sites para apex/app/api/serviços e um default que fecha a porta, snippets de TLS (Authenticated Origin Pulls), HSTS e cache. Upstreams resolvidos em runtime — um serviço fora não derruba o nginx.
+  - `infra/scripts/`: `bootstrap-vps.sh`, `update-cloudflare-ips.sh` (nginx + ufw), `deploy.sh` (backup → migrações → up → healthcheck → smoke test → rollback), `backup.sh` (pg_dump → age → S3, manifesto, alerta) e `restore-test.sh`.
+  - `apps/web/scripts/migrate.mjs`: migrations do schema `app` sem `drizzle-kit`, para a imagem standalone; a pasta de migrations passa a ir na imagem.
+  - `.github/workflows/deploy.yml`: tag `v*` → verificações → build/push no GHCR → environment `production` → deploy por SSH.
+  - `docs/runbooks/deploy.md`: checklist manual (Registro.br, DNSSEC, Cloudflare, SPF/DKIM/DMARC, VPS, backup) e o fluxo de deploy normal.
+- Etapa 2.5 — documentos obrigatórios:
+  - `docs/fontes-de-dados.md`: termos de todas as fontes verificados em 21/09/2026, com cópias dos documentos da B3 em `docs/fontes-de-dados/`. Resultado: **B3 exige licença** (termos do site + Política de Consumo de Market Data 2026) e **CoinGecko Demo não é comercial** → [ADR-017](docs/adr/ADR-017-fonte-das-cotacoes.md) (proposta): preço e cripto atrás das flags `MARKET_B3_PRICES_ENABLED`/`MARKET_CRYPTO_ENABLED` até a licença; e-mail de consulta à B3 rascunhado.
+  - `docs/ropa.md` v1 (Fase 0) e runbooks `incidente.md`, `restore.md`, `rotacao-de-chave.md`.
 - Etapa 2.4 — SEO, performance, acessibilidade:
   - Open Graph gerado com `next/og` (`lib/og.tsx`: navy + palavra dourada; fontes WOFF em `app/fonts/og/`), uma imagem por rota; `twitter:card`; JSON-LD `Organization` (home) e `VideoObject` (`/videos`).
   - `sitemap.xml`, `robots.txt` (bloqueia `/lista/`, `/api/`, `/design`), `manifest.webmanifest`, `theme-color`.

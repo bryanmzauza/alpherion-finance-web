@@ -171,7 +171,7 @@ Formato do canal: **tela + voz** no início, rosto entra depois. Cada vídeo com
 - **App:** Next.js + Postgres
 - **Auth:** provedor pronto
 - **Analytics:** Plausible ou Umami self-hosted
-- **Dados:** fontes oficiais gratuitas (CVM, B3, Tesouro, BCB, CoinGecko) em pipeline próprio; provedor pago só para internacional, na Fase 2
+- **Dados:** fontes oficiais (CVM, B3, Tesouro, BCB) em pipeline próprio. **Custo fixo desde o v1.0 (verificado em 21/09/2026, ADR-017):** licença de dados da B3 (≥ R$ 320/mês) e fonte de cripto licenciada (CoinGecko Analyst ≈ US$ 129/mês ou exchange). Provedor pago para internacional só na Fase 2
 - **Faturamento:** conteúdo e publicidade pela ME de serviços (consultoria só na Fase 3, em PJ registrada)
 
 ### Princípio de arquitetura
@@ -188,7 +188,7 @@ Formato do canal: **tela + voz** no início, rosto entra depois. Cada vídeo com
 | YouTube não automatiza bem — é o gargalo real de tempo       | Gravação em lote, formato âncora repetível               |
 | Produto encostar na fronteira regulatória                      | Diagnóstico ≠ recomendação. Disclaimer. Cripto primeiro. |
 | Audiência sem captura de e-mail                                | Captura desde o vídeo 1, sem exceção                      |
-| Custo de market data escalar antes da receita                   | Fontes oficiais gratuitas; internacional só na Fase 2        |
+| Custo de market data escalar antes da receita                   | CVM/Tesouro/BCB gratuitos; B3 e cripto são licença fixa e barata; internacional só na Fase 2 |
 | Portal de dados vira o produto e a leitura fica para trás       | O raio-x é o CTA de toda página de ativo; métrica: página de ativo → conta |
 
 ---
