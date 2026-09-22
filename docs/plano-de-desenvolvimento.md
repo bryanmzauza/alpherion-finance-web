@@ -164,7 +164,7 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 - [X] `/v1/securities` (lista + busca; `type=stock|fii|etf|bdr`; ordenação de lista fechada, padrão liquidez; paginação ≤ 100) · `/v1/securities/{ticker}` · `/history` · `/dividends` · `/events` · `/documents` · `/financials?period=annual` · `/v1/assets/search`
 - [X] `/v1/sectors` · `/v1/sectors/{slug}` · `/v1/indices` · `/v1/indices/{slug}` · `/composition` (com a data de referência na resposta) · `/history`
 - [X] `/v1/treasury*` · `/v1/crypto*` · `/v1/quotes` (papel desconhecido volta com motivo, não some) · `/v1/assets/search`. **Falta** `/crypto/correlations`, que depende do engine (Etapa 6)
-- [ ] `POST /v1/market/weekly-reading` (porta de `ferramentas/leitura-semanal.py`)
+- [X] `POST /v1/market/weekly-reading` — porte de `ferramentas/leitura-semanal.py` sobre **as nossas tabelas** (o Yahoo ficou fora pelo ADR 5): é o que garante que o número do vídeo e o número do site sejam o mesmo. Pearson e desvio-padrão escritos à mão, com a anualização de 365 (cripto) e 252 (bolsa) explícita e testada
 - [X] `market/cache.py` ligado às rotas (página do ativo, histórico, faixa, movers, overview, setores, índices, Tesouro), com TTL por família — cotação, faixa e movers em 5 min — e o estado das flags na chave; todo bloco de resposta com `source`, `document`, `updated_at`
 - [X] Flags na API por `market/flags.py`, aplicado **na saída**: com `false`, campo de preço vem `null` com o motivo em `missing_reasons`, e o motivo verdadeiro de uma ausência anterior não é sobrescrito. A trava é por origem (índice da B3 trava, Selic do BCB não, cripto tem a sua). `data_sources.terms_checked_at` vazio já bloqueia o job em produção (3.3)
 

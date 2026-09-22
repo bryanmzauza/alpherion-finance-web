@@ -358,3 +358,42 @@ class MarketOverview(BaseModel):
     losers: MoversList
     most_traded: MoversList
     events: list[MarketEvent]
+
+
+class WeeklyChange(BaseModel):
+    """Um ativo no snapshot da Leitura de Mercado."""
+
+    key: str
+    label: str
+    price: Decimal | None = None
+    change_7d: float | None = None
+    change_30d: float | None = None
+    change_ytd: float | None = None
+    low_52w: Decimal | None = None
+    high_52w: Decimal | None = None
+
+
+class WeeklyCorrelation(BaseModel):
+    pair: list[str]
+    #: Janela em pregões → correlação de Pearson dos retornos diários.
+    windows: dict[int, float | None]
+
+
+class WeeklyVolatility(BaseModel):
+    key: str
+    #: Janela em pregões → desvio-padrão anualizado dos retornos.
+    windows: dict[int, float | None]
+
+
+class WeeklyReading(Block):
+    """`POST /v1/market/weekly-reading` — os números do vídeo de segunda (§2.3).
+
+    Endpoint **interno**: o mesmo cálculo de `ferramentas/leitura-semanal.py`, mas sobre
+    as nossas tabelas. É o que garante que o número do vídeo e o número do site sejam o
+    mesmo número.
+    """
+
+    reference_date: dt.date
+    snapshot: list[WeeklyChange]
+    correlations: list[WeeklyCorrelation]
+    volatilities: list[WeeklyVolatility]

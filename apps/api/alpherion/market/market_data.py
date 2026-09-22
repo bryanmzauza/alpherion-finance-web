@@ -18,10 +18,11 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+from collections.abc import Sequence
 from decimal import Decimal
 from typing import Any, Final
 
-from sqlalchemy import Select, func, null, select
+from sqlalchemy import Row, Select, func, null, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alpherion.db.models import (
@@ -38,7 +39,7 @@ from alpherion.db.models import (
     TreasuryBond,
     TreasuryDaily,
 )
-from alpherion.market import repository, schemas
+from alpherion.market import repository, schemas, weekly
 
 logger = logging.getLogger(__name__)
 
@@ -600,3 +601,111 @@ async def quotes(session: AsyncSession, symbols: list[str]) -> list[schemas.Quot
         )
         for code in codes
     ]
+
+
+# --- Leitura de Mercado -----------------------------------------------------
+
+#: Ativos do snapshot semanal, na ordem do roteiro. `kind` diz de que tabela vem.
+WEEKLY_SERIES: Final[tuple[tuple[str, str, str], ...]] = (
+    ("ibovespa", "Ibovespa", "index"),
+    ("ifix", "IFIX", "index"),
+    ("bitcoin", "Bitcoin", "crypto"),
+    ("ethereum", "Ethereum", "crypto"),
+    ("ptax_venda", "Dólar (PTAX)", "macro"),
+)
+
+#: Pares do radar de risco. São os que o roteiro usa para falar de "o que anda junto".
+WEEKLY_PAIRS: Final[tuple[tuple[str, str], ...]] = (
+    ("bitcoin", "ibovespa"),
+    ("bitcoin", "ptax_venda"),
+    ("ethereum", "bitcoin"),
+    ("ibovespa", "ptax_venda"),
+    ("ibovespa", "ifix"),
+)
+
+#: Quanto histórico carregar: a maior janela (252) com folga para feriados.
+WEEKLY_HISTORY_DAYS: Final = 420
+
+
+async def weekly_series(session: AsyncSession, *, reference: dt.date) -> dict[str, weekly.Series]:
+    """Carrega as séries do snapshot semanal das tabelas do próprio produto."""
+    start = reference - dt.timedelta(days=WEEKLY_HISTORY_DAYS)
+    series: dict[str, weekly.Series] = {}
+
+    for key, label, kind in WEEKLY_SERIES:
+        rows: Sequence[Row[Any]]
+        if kind == "index":
+            rows = (
+                await session.execute(
+                    select(IndexDaily.date, IndexDaily.value)
+                    .where(IndexDaily.slug == key, IndexDaily.date.between(start, reference))
+                    .order_by(IndexDaily.date)
+                )
+            ).all()
+        elif kind == "crypto":
+            rows = (
+                await session.execute(
+                    select(CryptoDaily.date, CryptoDaily.price_brl)
+                    .where(CryptoDaily.id == key, CryptoDaily.date.between(start, reference))
+                    .order_by(CryptoDaily.date)
+                )
+            ).all()
+        else:
+            rows = (
+                await session.execute(
+                    select(MacroSeries.date, MacroSeries.value)
+                    .where(MacroSeries.series == key, MacroSeries.date.between(start, reference))
+                    .order_by(MacroSeries.date)
+                )
+            ).all()
+
+        series[key] = weekly.Series(
+            key=key,
+            label=label,
+            points=[(row[0], Decimal(str(row[1]))) for row in rows if row[1] is not None],
+            crypto=kind == "crypto",
+        )
+    return series
+
+
+async def weekly_reading(
+    session: AsyncSession, *, reference: dt.date | None = None
+) -> schemas.WeeklyReading:
+    """Snapshot, correlações e volatilidades da Leitura de Mercado."""
+    day = reference or dt.date.today()
+    series = await weekly_series(session, reference=day)
+    ordered = [series[key] for key, _, _ in WEEKLY_SERIES]
+
+    mudancas = weekly.snapshot(ordered, reference=day)
+    extremos = {item.key: weekly.extremes(item, reference=day) for item in ordered}
+
+    return schemas.WeeklyReading(
+        source=await repository.source_ref(session, "b3", document=f"séries até {day:%d/%m/%Y}"),
+        reference_date=day,
+        snapshot=[
+            schemas.WeeklyChange(
+                key=change.key,
+                label=change.label,
+                price=change.price,
+                change_7d=change.change_7d,
+                change_30d=change.change_30d,
+                change_ytd=change.change_ytd,
+                low_52w=extremos[change.key][0],
+                high_52w=extremos[change.key][1],
+            )
+            for change in mudancas
+        ],
+        correlations=[
+            schemas.WeeklyCorrelation(pair=list(item.pair), windows=item.windows)
+            for item in weekly.correlations(series, list(WEEKLY_PAIRS), reference=day)
+        ],
+        volatilities=[
+            schemas.WeeklyVolatility(key=item.key, windows=item.windows)
+            for item in weekly.volatilities(ordered, reference=day)
+        ],
+        missing_reasons={
+            change.key: change.missing_reason
+            for change in mudancas
+            if change.missing_reason is not None
+        },
+    )

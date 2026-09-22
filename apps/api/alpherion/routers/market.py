@@ -253,3 +253,27 @@ async def get_crypto_history(
 ) -> list[schemas.CryptoPoint]:
     points = await market_data.crypto_history(session, asset_id, days=days)
     return gate.apply_all(points, crypto=True)
+
+
+# --- Leitura de Mercado -----------------------------------------------------
+
+
+@router.post("/market/weekly-reading", response_model=schemas.WeeklyReading)
+async def weekly_reading(
+    session: SessionDep,
+    gate: GateDep,
+    reference_date: dt.date | None = None,
+) -> schemas.WeeklyReading:
+    """Números da Leitura de Mercado — endpoint **interno** (§2.3).
+
+    Mesmo cálculo de `ferramentas/leitura-semanal.py`, mas sobre as nossas tabelas: é o
+    que garante que o número do vídeo e o número do site sejam o mesmo número.
+
+    `POST` e não `GET` porque o cálculo percorre um ano de série de cinco ativos e não é
+    idempotente do ponto de vista de custo — não é resposta para cachear em borda.
+
+    A trava do ADR-017 vale aqui como em qualquer outra saída: sem licença, os preços
+    vêm `null` com o motivo. O vídeo é publicação como qualquer outra.
+    """
+    result = await market_data.weekly_reading(session, reference=reference_date)
+    return result.model_copy(update={"snapshot": gate.apply_all(result.snapshot)})
