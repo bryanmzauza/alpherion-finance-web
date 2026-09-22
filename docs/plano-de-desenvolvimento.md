@@ -151,10 +151,10 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 
 ### 3.3 Jobs (idempotentes, lock no Redis, registram `etl_runs`)
 
-- [ ] `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `b3_index_composition`, `cvm_companies`, `cvm_statements` (DFP anual), `cvm_fii_reports`, `cvm_documents`, `tesouro_daily`, `bcb_series`, `coingecko_prices`, `coingecko_history`, `adjust_factors`, `indicators_rebuild`, `market_events_rebuild`, `revalidate_pages`
+- [ ] `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `b3_index_composition`, ~~`cvm_companies`~~, ~~`cvm_statements` (DFP anual)~~, ~~`cvm_fii_reports`~~, ~~`cvm_documents`~~, ~~`tesouro_daily`~~, ~~`bcb_series`~~, `coingecko_prices`, `coingecko_history`, `adjust_factors`, `indicators_rebuild`, `market_events_rebuild`, `revalidate_pages` — base comum pronta (`jobs/base.py`: lock no Redis com TTL e liberação pelo dono, `etl_runs` fechado no `finally`, bloqueio por licença lido de `data_sources`, `db/upsert.py` idempotente). Falta a metade da B3/cripto e os derivados
 - [ ] Agendamento por cron do host (preferido) ou `scheduler.py`
 - [ ] `infra/scripts/backfill-market.sh` com `--sample` (20 ações, 10 FIIs, 5 ETFs, 5 BDRs, 3 índices, Tesouro, top 20 cripto, 3 anos, IPE de 90 dias) para dev
-- [ ] `docs/runbooks/reprocessar-job.md`
+- [X] `docs/runbooks/reprocessar-job.md`
 
 ### 3.4 Endpoints de mercado
 
