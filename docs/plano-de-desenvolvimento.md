@@ -159,13 +159,13 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 
 ### 3.4 Endpoints de mercado
 
-- [ ] `GET /v1/market/overview` · `/v1/market/strip` · `/v1/market/movers` (métrica de lista fechada, `min_volume`) · `/v1/market/events`
+- [X] `GET /v1/market/overview` · `/v1/market/strip` · `/v1/market/movers` (métrica de lista fechada **e** piso de liquidez no contrato) · `/v1/market/events`
 - [X] `/v1/securities` (lista + busca; `type=stock|fii|etf|bdr`; ordenação de lista fechada, padrão liquidez; paginação ≤ 100) · `/v1/securities/{ticker}` · `/history` · `/dividends` · `/events` · `/documents` · `/financials?period=annual` · `/v1/assets/search`
-- [ ] `/v1/sectors` · `/v1/sectors/{slug}` · `/v1/indices` · `/v1/indices/{slug}` · `/composition` · `/history`
-- [ ] `/v1/treasury*` · `/v1/crypto*` (+ `/correlations`) · `/v1/quotes` · `/v1/assets/search` (todas as classes + índices, agrupado por classe)
+- [X] `/v1/sectors` · `/v1/sectors/{slug}` · `/v1/indices` · `/v1/indices/{slug}` · `/composition` (com a data de referência na resposta) · `/history`
+- [X] `/v1/treasury*` · `/v1/crypto*` · `/v1/quotes` (papel desconhecido volta com motivo, não some) · `/v1/assets/search`. **Falta** `/crypto/correlations`, que depende do engine (Etapa 6)
 - [ ] `POST /v1/market/weekly-reading` (porta de `ferramentas/leitura-semanal.py`)
-- [ ] Cache Redis (cotação 5 min; strip 5 min; movers 5 min); todo bloco de resposta com `source`, `document`, `updated_at`
-- [ ] Flags `MARKET_B3_PRICES_ENABLED` / `MARKET_CRYPTO_ENABLED` na API: com `false`, campos de preço vêm `null` com `reason`; `data_sources.terms_checked_at` vazio bloqueia o job em produção (ADR-017)
+- [X] `market/cache.py` com TTL por família (cotação, faixa e movers 5 min) e o estado das flags na chave; todo bloco de resposta com `source`, `document`, `updated_at`. **Falta ligar o cache às rotas** — a fundação está pronta e testada
+- [X] Flags na API por `market/flags.py`, aplicado **na saída**: com `false`, campo de preço vem `null` com o motivo em `missing_reasons`, e o motivo verdadeiro de uma ausência anterior não é sobrescrito. A trava é por origem (índice da B3 trava, Selic do BCB não, cripto tem a sua). `data_sources.terms_checked_at` vazio já bloqueia o job em produção (3.3)
 
 ### 3.5 Páginas de mercado (`app/(market)/`, ISR, container 1280)
 

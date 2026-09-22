@@ -8,7 +8,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versioname
 - Plano de desenvolvimento **v2.0** — paridade funcional com o Status Invest ([ADR-018](docs/adr/ADR-018-paridade-status-invest.md)): v1.0 adiado de 25/09 para **09/10/2026** e dividido em quatro tags (`v0.2.0` pipeline + páginas, `v0.3.0` portal, `v0.4.0` carteira/B3, `v1.0.0` análise). `docs/site.md` ganha o portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição e comunicados CVM (v1.0); calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento (v1.x); imposto de renda (Fase 1); internacional com provedor licenciado (Fase 2, ADR-019 pendente). Fontes, tabelas, endpoints e módulos (§14) correspondentes. Roadmap sincronizado com a fonte (`alpherion-finance-yt`).
 
 ### Adicionado
-- Etapa 3.4 (parcial) — endpoints dos ativos:
+- Etapa 3.4 — endpoints de mercado:
   - `market/schemas.py`: duas convenções que valem para toda resposta de mercado — todo bloco traz a **sua** fonte (`SourceBadge` depende disso; cadastro vem da B3, indicador da CVM, cotação do COTAHIST, em datas diferentes) e toda ausência vem com motivo em `missing_reasons`, a mesma convenção de `indicators_daily`.
   - `market/flags.py`: a trava do ADR-017 aplicada **na saída**, num lugar só — rota nova herda o comportamento certo. Preço travado vira `null` com o motivo ("cotação indisponível (fonte de preço não licenciada)"), nunca zero e nunca campo sumido; o motivo verdadeiro de uma ausência anterior não é apagado; ROE, margens e endividamento continuam saindo.
   - `market/repository.py`: todo o SQL das rotas. Ordenação de lista fechada (`SORTABLE`) com padrão **liquidez**, que é neutra — alfabética privilegiaria o começo do alfabeto e valuation insinuaria recomendação (ADR-018). Nenhuma consulta sem limite: o usuário `api` tem `statement_timeout` de 5 s.
@@ -16,6 +16,10 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versioname
   - `routers/securities.py`: `/v1/assets/search`, `/v1/securities`, `/v1/securities/{ticker}` e `/history`, `/dividends`, `/events`, `/documents`, `/financials`. Escopo `market:read` exigido.
   - `db/session.py` ganha a dependência de sessão assíncrona.
   - 20 testes do contrato (fonte em cada bloco, trava do ADR-017, ordenação fechada, teto de 100, comunicado sem campo de texto) e um token de teste **sem** `market:read`, para provar que o escopo é exigido.
+  - `market/market_data.py` + `routers/market.py`: faixa do header, listas do dia, agenda, contadores, setores, índices (com a carteira teórica **datada**), Tesouro, cripto e `/v1/quotes`. A defesa desta área está no contrato: lista ordenada declara a métrica **e** o piso de liquidez (sem ele, "maior alta" é sempre um papel de R$ 3 mil que subiu com um lote), e contador é número puro.
+  - A trava do ADR-017 é **por origem**: índice da B3 e cripto travam, Selic e IPCA do BCB e o Tesouro (ODbL) saem sempre — `/tesouro` é a única página de preço que não depende da licença da B3.
+  - Papel desconhecido em `/v1/quotes` volta na lista com `price: null` e motivo, em vez de sumir: o app precisa saber que perguntou por algo que não temos.
+  - 15 testes do portal.
 - Etapa 3.3 — carga inicial do schema `market`:
   - `data/backfill.py`: a ordem das etapas e os dois perfis. `--sample` (20 ações, 10 FIIs, 5 ETFs, 5 BDRs, 3 índices, Tesouro, 20 cripto, 3 anos, 90 dias de IPE) roda em minutos e deixa um banco de dev pequeno — o filtro de papéis no COTAHIST anual é o que faz a diferença. `--full` é o que roda uma vez em produção antes da `v0.2.0`. Etapa que falha não aborta as demais, e o resumo final diz o comando para reexecutar só o que falhou; etapa pulada pelo ADR-017 não conta como falha.
   - `cotahist_daily.run_year()` para o backfill, com filtro por papel.

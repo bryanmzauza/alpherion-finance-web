@@ -240,3 +240,121 @@ class MoversList(Block):
     direction: str
     min_volume: Decimal | None = None
     items: list[Mover]
+
+
+class SectorNode(BaseModel):
+    """Um nó da árvore de setores (segmento B3 ou segmento de FII)."""
+
+    slug: str
+    name: str
+    kind: str
+    sector: str | None = None
+    subsector: str | None = None
+    #: Contagem factual de papéis ativos — "23 empresas", sem adjetivo.
+    securities_count: int
+
+
+class IndexSummary(BaseModel):
+    slug: str
+    b3_code: str
+    name: str
+
+
+class IndexDetail(Block):
+    """Índice com o último fechamento. A carteira vem em `/composition`."""
+
+    slug: str
+    b3_code: str
+    name: str
+    description: str | None = None
+    rebalance_note: str | None = None
+    value: Decimal | None = None
+    change_percent: Decimal | None = None
+    date: dt.date | None = None
+
+
+class IndexMember(BaseModel):
+    ticker: str
+    company_name: str | None = None
+    #: Participação em fração (0,0812 = 8,12%).
+    weight: Decimal | None = None
+    theoretical_qty: Decimal | None = None
+
+
+class IndexCompositionResult(Block):
+    """Carteira teórica — **a data é parte do dado** e a página tem de mostrá-la."""
+
+    slug: str
+    reference_date: dt.date
+    members: list[IndexMember]
+
+
+class IndexPoint(BaseModel):
+    date: dt.date
+    value: Decimal | None = None
+    change_percent: Decimal | None = None
+
+
+class TreasuryBondItem(Block):
+    """Título do Tesouro com taxa e preço do dia. Fonte ODbL: não depende da B3."""
+
+    slug: str
+    name: str
+    index_type: str
+    maturity: dt.date
+    coupon: bool
+    date: dt.date | None = None
+    buy_rate: Decimal | None = None
+    sell_rate: Decimal | None = None
+    buy_price: Decimal | None = None
+    sell_price: Decimal | None = None
+
+
+class TreasuryPoint(BaseModel):
+    date: dt.date
+    buy_rate: Decimal | None = None
+    sell_rate: Decimal | None = None
+    buy_price: Decimal | None = None
+    sell_price: Decimal | None = None
+
+
+class CryptoItem(Block):
+    """Criptoativo com o snapshot mais recente (ADR-017: travado até a fonte licenciada)."""
+
+    id: str
+    symbol: str
+    name: str
+    rank: int | None = None
+    price: Decimal | None = None
+    change_24h: Decimal | None = None
+    market_cap: Decimal | None = None
+    volume_24h: Decimal | None = None
+
+
+class CryptoPoint(BaseModel):
+    date: dt.date
+    price: Decimal | None = None
+    volume: Decimal | None = None
+
+
+class QuoteItem(Block):
+    """Cotação atual de um papel, para o app valorizar a carteira."""
+
+    ticker: str
+    price: Decimal | None = None
+    date: dt.date | None = None
+
+
+class MarketOverview(BaseModel):
+    """`/v1/market/overview`: o que o portal mostra de uma vez.
+
+    Contadores são **factuais** ("412 empresas listadas"), nunca qualificados. As listas
+    do dia trazem a métrica que as ordenou, e cada bloco tem a sua fonte.
+    """
+
+    strip: list[StripItem]
+    counters: dict[str, int]
+    gainers: MoversList
+    losers: MoversList
+    most_traded: MoversList
+    events: list[MarketEvent]

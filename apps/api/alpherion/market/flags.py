@@ -32,6 +32,9 @@ CRYPTO_REASON: Final = "dado de cripto indisponível (fonte não licenciada)"
 PRICE_FIELDS: Final = frozenset(
     {
         "price",
+        # `value` cobre o ponto de índice e o item da faixa; o item macro do BCB nunca
+        # passa por aqui (a rota só trava os de origem B3 e cripto).
+        "value",
         "close",
         "close_adjusted",
         "open",
