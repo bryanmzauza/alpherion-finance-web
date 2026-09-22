@@ -154,7 +154,7 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 
 - [X] `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `b3_index_composition`, `cvm_companies`, `cvm_statements` (DFP anual), `cvm_fii_reports`, `cvm_documents`, `tesouro_daily`, `bcb_series`, `coingecko_prices`, `coingecko_history`, `adjust_factors`, `indicators_rebuild`, `market_events_rebuild`, `revalidate_pages` — todos sobre `jobs/base.py` (lock no Redis, `etl_runs` no `finally`, trava de licença lida de `data_sources`) e `db/upsert.py`
 - [X] Agendamento em `data/scheduler.py` (é o `command` do serviço `data` no compose): uma tabela `SCHEDULE` com a ordem do dia — preço → eventos → ajuste → fundamentos → indicadores → revalidação. O cron do host continua possível (cada job é `python -m alpherion.data.jobs.<job>`); num VPS só, o agendador dentro do container evita duplicar configuração
-- [ ] `infra/scripts/backfill-market.sh` com `--sample` (20 ações, 10 FIIs, 5 ETFs, 5 BDRs, 3 índices, Tesouro, top 20 cripto, 3 anos, IPE de 90 dias) para dev
+- [X] `infra/scripts/backfill-market.sh` com `--sample` (20 ações, 10 FIIs, 5 ETFs, 5 BDRs, 3 índices, Tesouro, top 20 cripto, 3 anos, IPE de 90 dias) e `--full`. A ordem das etapas e os perfis ficam em `data/backfill.py` (testável); o script só escolhe onde rodar — container `data` em produção, `.venv` em dev. `--etapa` reexecuta só o que falhou, `--dry-run` lista
 - [X] `docs/runbooks/reprocessar-job.md`
 
 ### 3.4 Endpoints de mercado

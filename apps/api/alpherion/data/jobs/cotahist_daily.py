@@ -69,11 +69,51 @@ def run(*, day: date | None = None) -> None:
         )
 
 
+def run_year(*, year: int, only: list[str] | None = None) -> None:
+    """Carrega um ano inteiro (backfill). `only` limita aos papéis de interesse.
+
+    O arquivo anual passa de 200 MB descomprimido e traz todo papel que já existiu;
+    em desenvolvimento, filtrar por uma amostra é a diferença entre um banco de
+    centenas de MB e um de poucos.
+    """
+    wanted = {ticker.upper() for ticker in only} if only else None
+    with base.run(JOB, period=date(year, 1, 1), source=SOURCE) as ctx:
+        create_year_partition(ctx.session.connection(), year)
+        rows = [
+            {
+                "ticker": quote.ticker,
+                "date": quote.date,
+                "open": quote.open,
+                "high": quote.high,
+                "low": quote.low,
+                "close": quote.close,
+                "volume": quote.volume,
+                "quantity": quote.quantity,
+                "trades": quote.trades,
+            }
+            for quote in b3_cotahist.fetch_year(year)
+            if wanted is None or quote.ticker in wanted
+        ]
+        ctx.wrote(
+            upsert(
+                ctx.session,
+                DailyQuote,
+                rows,
+                update=["open", "high", "low", "close", "volume", "quantity", "trades"],
+            )
+        )
+
+
 def _cli() -> None:
     parser = argparse.ArgumentParser(description="Carrega as cotações de um pregão.")
     parser.add_argument("--data", default=None, help="pregão em aaaa-mm-dd (padrão: hoje)")
     parser.add_argument("--dias", type=int, default=1, help="quantos pregões para trás")
+    parser.add_argument("--ano", type=int, default=None, help="ano inteiro (backfill)")
     args = parser.parse_args()
+
+    if args.ano:
+        run_year(year=args.ano)
+        return
 
     start = datetime.strptime(args.data, "%Y-%m-%d").date() if args.data else date.today()
     for offset in range(args.dias):
