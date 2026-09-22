@@ -128,21 +128,25 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 
 ### 3.1 Schema `market` (SQLAlchemy + Alembic)
 
-- [ ] Tabelas do §4.3: `securities` (com `market`, `sector_slug`, `etf_index_slug`, `bdr_ratio`), `daily_quotes` (particionada por ano), `corporate_actions`, `financial_statements`, `company_facts`, `indicators_daily`, `fii_reports`, `treasury_bonds`, `treasury_daily`, `macro_series`, `crypto_assets/daily/metrics`, `etl_runs`, `data_sources`
-- [ ] Tabelas novas do portal: `indices`, `index_daily`, `index_compositions`, `company_documents`, `market_events` (view materializada)
-- [ ] Índices em todo campo filtrável; `statement_timeout 5s` no usuário `api`
+- [X] Tabelas do §4.3: `securities` (com `market`, `sector_slug`, `etf_index_slug`, `bdr_ratio`), `daily_quotes` (particionada por ano, 1986→ano+1), `corporate_actions`, `financial_statements`, `company_facts`, `indicators_daily`, `fii_reports`, `treasury_bonds`, `treasury_daily`, `macro_series`, `crypto_assets/daily/metrics`, `etl_runs`, `data_sources`
+- [X] Tabelas novas do portal: `indices`, `index_daily`, `index_compositions`, `company_documents`, `sectors`
+- [ ] `market_events` (view materializada) — entra junto com o job `market_events_rebuild` (3.3)
+- [X] Índices em todo campo filtrável; busca por nome com `pg_trgm` + `unaccent` (via `market.immutable_unaccent`, porque `unaccent()` não é IMMUTABLE); `statement_timeout 5s` no usuário `api` (já no `init.sql`)
+- [X] `data_sources` semeada na migration com o resultado da verificação de termos: B3 e CoinGecko **sem** `terms_checked_at` (bloqueadas, ADR-017)
+- [X] Flags `MARKET_B3_PRICES_ENABLED` e `MARKET_CRYPTO_ENABLED` em `settings.py` (padrão `false`)
 
 ### 3.2 Sources + transform (cada um com teste sobre fixture pequena)
 
-- [ ] `b3_cotahist.py` + `cotahist_parser.py` (layout posicional) — ou fonte licenciada, conforme ADR-017
+- [X] `cotahist_parser.py` (layout posicional oficial, rev. 01 de 13/04/2017: 245 bytes, preços `(11)V99`, `FATCOT` normalizado para preço unitário, filtro de mercado à vista) + `b3_cotahist.py` (download diário/anual, arquivo descartado depois) — fonte licenciada troca só o `b3_cotahist.py` (ADR-017)
 - [ ] `b3_listing.py` (ações, units, **ETFs, BDRs**, FIIs) + `b3_events.py` (eventos; fallback CVM/FRE documentado)
 - [ ] `b3_indices.py`: carteira teórica e fechamento dos índices (Ibovespa, IFIX, IDIV, SMLL, IBRX 100, IBRA, IFNC, IMOB, UTIL); fallback = manter a última carteira e expor a data
 - [ ] `cvm.py` (cadastro, DFP, FRE/FCA, informes de FII) + `cvm_statements.py` (formato longo; versão mais recente por período)
 - [ ] `cvm_documents.py` (IPE: metadados + link; incremental por data de entrega; **nunca baixa o documento**)
-- [ ] `tesouro.py`, `bcb.py` (códigos SGS documentados), `coingecko.py` (chave Demo, atribuição)
+- [X] `tesouro.py` (CSV do Tesouro Transparente, decimal pt-BR, slug estável por vencimento) e `bcb.py` (códigos SGS documentados num só lugar; HTML do SGS fora do ar não vira série vazia) — **fontes liberadas** (ODbL / dados abertos)
+- [ ] `coingecko.py` (só dev até a fonte licenciada — ADR-017)
 - [ ] `adjust.py` (fator acumulado) e `indicators.py` (fórmulas; `null` com motivo quando falta entrada; testes contra casos à mão)
 - [ ] `events.py`: monta `market_events` a partir de `corporate_actions`, `company_documents` e `content/agenda-macro.json`
-- [ ] Proteções §7.5: limite de download, zip bomb, lista fechada de hosts (inclui os hosts novos da B3 e da CVM)
+- [X] Proteções §7.5 em `sources/http.py`: lista fechada de hosts (revalidada a cada redirect), limite de download pelo que chega (não pelo `Content-Length`), limite de descompressão e neutralização de caminho de fuga no ZIP — com testes
 
 ### 3.3 Jobs (idempotentes, lock no Redis, registram `etl_runs`)
 

@@ -8,6 +8,18 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versioname
 - Plano de desenvolvimento **v2.0** — paridade funcional com o Status Invest ([ADR-018](docs/adr/ADR-018-paridade-status-invest.md)): v1.0 adiado de 25/09 para **09/10/2026** e dividido em quatro tags (`v0.2.0` pipeline + páginas, `v0.3.0` portal, `v0.4.0` carteira/B3, `v1.0.0` análise). `docs/site.md` ganha o portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição e comunicados CVM (v1.0); calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento (v1.x); imposto de renda (Fase 1); internacional com provedor licenciado (Fase 2, ADR-019 pendente). Fontes, tabelas, endpoints e módulos (§14) correspondentes. Roadmap sincronizado com a fonte (`alpherion-finance-yt`).
 
 ### Adicionado
+- Etapa 3.2 (parcial) — fontes e transformações do pipeline:
+  - `transform/cotahist_parser.py`: parser do arquivo posicional da B3 conforme o layout oficial (245 bytes, preços com 2 casas implícitas em `Decimal`, `FATCOT` normalizado para preço unitário, filtro de mercado à vista e de papéis negociáveis). Fixture **sintética** gerada por script (`tests/fixtures/cotahist/`) — nenhum dado real da B3 no repositório.
+  - `sources/http.py`: cliente do worker com as proteções do §7.5 — lista fechada de hosts revalidada a cada redirect, limite de download pelo que realmente chega e limite de descompressão com neutralização de caminho de fuga no ZIP.
+  - `sources/b3_cotahist.py` (download diário/anual, arquivo descartado após o parse), `sources/tesouro.py` (CSV ODbL, decimal pt-BR, slug estável) e `sources/bcb.py` (códigos do SGS documentados num único lugar).
+  - 33 testes novos: layout do COTAHIST, zip bomb, path traversal, redirect para host estranho, decimal brasileiro e resposta HTML do SGS.
+- Etapa 3.1 — schema `market` (API):
+  - 20 tabelas em `alpherion/db/models/` (cadastro, cotações, eventos, demonstrações, indicadores, FII, Tesouro, macro, cripto, índices, documentos CVM, setores, controle de ETL) com a primeira migration real do Alembic.
+  - `daily_quotes` particionada por ano (1986 → ano seguinte); partições criadas na migration e pelo helper `db/partitions.py` (o Postgres não cria sozinho).
+  - Busca de ativos por nome com `pg_trgm` + `unaccent`, via `market.immutable_unaccent` (o `unaccent()` nativo é STABLE e não pode ser indexado); extensões criadas no `init.sql`.
+  - `data_sources` semeada com a verificação de termos: CVM, Tesouro, BCB e agenda liberadas; **B3 e CoinGecko bloqueadas** (ADR-017). Flags `MARKET_B3_PRICES_ENABLED` e `MARKET_CRYPTO_ENABLED` em `settings.py`.
+  - `alembic/env.py` passa a filtrar schemas na inspeção (`include_name`): sem isso o autogenerate tenta ler o schema `app` e toma "permission denied" — o isolamento do §7.6 funcionando.
+  - Testes estruturais (`tests/test_models.py`): tudo no schema `market`, tabelas do §4.3 presentes, partição declarada, nenhuma coluna de dinheiro em float, `PRICE_BASED` coerente com a tabela.
 - Etapa 2.6 — infra de produção:
   - `infra/compose.yml`: nginx, web, api, data, postgres, redis, listmonk, umami e uptime-kuma; redes `edge` (borda), `internal` (sem saída para a internet) e `egress` (fontes externas); healthchecks; volume separado para o schema `market` e volume de log do nginx (6 meses, Marco Civil).
   - `infra/nginx/`: `nginx.conf` (real-ip da Cloudflare, rate limit, cache de borda), sites para apex/app/api/serviços e um default que fecha a porta, snippets de TLS (Authenticated Origin Pulls), HSTS e cache. Upstreams resolvidos em runtime — um serviço fora não derruba o nginx.

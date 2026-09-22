@@ -57,6 +57,16 @@ class Settings(BaseSettings):
     api_service_tokens: str = "{}"
     cors_origins: str = ""
 
+    # Licenças de dado (ADR-017). Enquanto `false`, a API devolve os campos de preço como
+    # `null` com o motivo, e as páginas mostram "—": o pipeline roda, o dado não sai.
+    # Só viram `true` com a licença registrada em docs/fontes-de-dados.md.
+    market_b3_prices_enabled: bool = False
+    market_crypto_enabled: bool = False
+
+    @property
+    def is_prod(self) -> bool:
+        return self.app_env == "prod"
+
     @property
     def service_clients(self) -> dict[str, ServiceClient]:
         raw = json.loads(self.api_service_tokens)

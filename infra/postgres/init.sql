@@ -4,6 +4,12 @@
 --   data → escrita no schema market (worker + Alembic); nada no app
 -- O schema public fica sem CREATE para os três.
 
+-- Extensões usadas pela busca de ativos (`/v1/assets/search`): pg_trgm para busca por
+-- trecho do nome e unaccent para ignorar acento. Criadas pelo superusuário porque
+-- CREATE EXTENSION exige privilégio que os usuários de serviço não têm (§7.6).
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 CREATE ROLE :"web_user"  LOGIN PASSWORD :'web_password';
 CREATE ROLE :"api_user"  LOGIN PASSWORD :'api_password';
 CREATE ROLE :"data_user" LOGIN PASSWORD :'data_password';

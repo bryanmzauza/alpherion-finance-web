@@ -11,6 +11,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from alpherion.db import models  # noqa: F401  (registra as tabelas no metadata)
 from alpherion.db.base import SCHEMA, Base
 from alpherion.settings import get_settings
 
@@ -30,6 +31,18 @@ def include_object(obj: object, name: str | None, type_: str, *_: object) -> boo
     return True
 
 
+def include_name(name: str | None, type_: str, _parent: object) -> bool:
+    """Impede o autogenerate de *inspecionar* outros schemas.
+
+    Sem isto o Alembic varre `app` (dono: Drizzle) e o usuário `data` toma
+    "permission denied for schema app" — que é justamente o isolamento do §7.6
+    funcionando. Filtrar aqui é mais barato (e mais correto) do que afrouxar o GRANT.
+    """
+    if type_ == "schema":
+        return name in (SCHEMA, None)
+    return True
+
+
 def run_migrations_offline() -> None:
     context.configure(
         url=config.get_main_option("sqlalchemy.url"),
@@ -39,6 +52,7 @@ def run_migrations_offline() -> None:
         version_table_schema=SCHEMA,
         include_schemas=True,
         include_object=include_object,
+        include_name=include_name,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -57,6 +71,7 @@ def run_migrations_online() -> None:
             version_table_schema=SCHEMA,
             include_schemas=True,
             include_object=include_object,
+            include_name=include_name,
         )
         with context.begin_transaction():
             context.run_migrations()
