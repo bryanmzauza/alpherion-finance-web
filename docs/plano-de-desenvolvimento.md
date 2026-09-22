@@ -169,12 +169,12 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 
 ### 3.5 Páginas de mercado (`app/(market)/`, ISR, container 1280)
 
-- [X] `components/market/`: `SourceBadge`, `Value` (o "—" com motivo), `PriceHeader`, `HistoryChart` (SVG puro, sem biblioteca — o orçamento de JS não comporta uma), `IndicatorGrid` (definições em `content/indicadores.ts`), `FinancialTable`, `DividendTable`, `DocumentList`, `SecurityTable`, `SameSectorList`, `TickerLink`, `AssetCTA`. **Faltam** `IndexCompositionTable`, `TreasuryTable`, `CryptoTable`, `EventList` e `DividendChart`
-- [X] Rotas `/acoes`, `/fiis`, `/etfs`, `/bdrs` e a página do ativo (histórico, indicadores, proventos, demonstrações, comunicados, cadastro, mesmo setor, CTA) — uma página para as quatro classes. **Faltam** `/indices`, `/tesouro` e `/cripto`
+- [X] `components/market/`: `SourceBadge`, `Value` (o "—" com motivo), `PriceHeader`, `HistoryChart` (SVG puro, sem biblioteca — o orçamento de JS não comporta uma), `IndicatorGrid` (definições em `content/indicadores.ts`), `FinancialTable`, `DividendTable`, `DocumentList`, `SecurityTable`, `SameSectorList`, `IndexCompositionTable`, `TreasuryTable`, `CryptoTable`, `TickerLink`, `AssetCTA`. `EventList` e `DividendChart` entram com a `/agenda` (Etapa 4.3)
+- [X] Rotas `/acoes`, `/fiis`, `/etfs`, `/bdrs` e a página do ativo (histórico, indicadores, proventos, demonstrações, comunicados, cadastro, mesmo setor, CTA), `/indices` e `/indices/[slug]` (com a carteira datada), `/tesouro` e `/cripto`. As quatro classes de papel compartilham uma página só
 - [X] Redirects: ticker minúsculo → maiúsculo (301) e ticker na classe errada → 301 para a classe certa; inexistente → 404. **Faltam** a busca no 404 (depende da `GlobalSearch`, Etapa 4.1) e `www.` → apex (nginx)
 - [X] `app/api/revalidate` (token comparado em tempo constante) chamado pelo job `revalidate_pages`
 - [X] Sitemaps por classe (`acoes`, `fiis`, `etfs`, `bdrs`), anunciados no `robots.txt`; título/description por template; JSON-LD `Corporation` (só cadastro) + `BreadcrumbList`; `Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400`. **Faltam** os sitemaps de índices/Tesouro/cripto e o OG por ticker
-- [ ] Seção "Dados de mercado" da landing linkando de verdade (agora com 7 links: ações, FIIs, ETFs, BDRs, índices, Tesouro, cripto)
+- [X] Seção "Dados de mercado" da landing com os 7 links reais (`MARKET_LINKS`, o mesmo lugar de onde o menu do portal vai sair na Etapa 4.1)
 
 ### 3.6 Operação
 

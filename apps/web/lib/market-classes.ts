@@ -79,3 +79,15 @@ export function classByType(type: SecurityType): MarketClass | undefined {
   const target = alias[type] ?? type;
   return MARKET_CLASSES.find((c) => c.type === target);
 }
+
+// Os sete caminhos de dado de mercado, na ordem em que aparecem na landing (§5, seção 5)
+// e no menu do portal (Etapa 4.1). Um lugar só: a landing e o header não podem divergir.
+export const MARKET_LINKS: { href: string; label: string; hint: string }[] = [
+  { href: "/acoes", label: "Ações", hint: "cotação, proventos, indicadores" },
+  { href: "/fiis", label: "FIIs", hint: "rendimentos e P/VP" },
+  { href: "/etfs", label: "ETFs", hint: "índice replicado" },
+  { href: "/bdrs", label: "BDRs", hint: "razão de conversão" },
+  { href: "/indices", label: "Índices", hint: "carteira teórica datada" },
+  { href: "/tesouro", label: "Tesouro Direto", hint: "taxa e preço do dia" },
+  { href: "/cripto", label: "Cripto", hint: "cotação em reais" },
+];

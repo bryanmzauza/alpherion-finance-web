@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmailCapture } from "@/components/ui/email-capture";
 import { Gold } from "@/components/ui/gold";
+import { MARKET_LINKS } from "@/lib/market-classes";
 import { AUTHOR, DATA_SOURCES, DOES_AND_DOESNT, FAQ, QUADROS, READINGS, SITE_DESCRIPTION } from "@/content/site";
 import { publishedVideos } from "@/lib/videos";
 import { JsonLd } from "@/components/site/json-ld";
@@ -116,8 +117,21 @@ export default function HomePage() {
         }
         intro="Cotações, indicadores e proventos de toda a B3, Tesouro e cripto — com fonte em cada número."
       >
-        {/* Busca de ticker e links para /acoes, /fiis, /tesouro, /cripto entram na Etapa 3.5, quando as páginas existirem. */}
-        <ul className="flex flex-wrap gap-2">
+        {/* A busca global entra com o header do portal (Etapa 4.1). Aqui, os sete caminhos. */}
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {MARKET_LINKS.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                className="block rounded-lg border border-navy-3 bg-navy-2 px-4 py-3 hover:border-gold"
+              >
+                <span className="font-medium">{link.label}</span>
+                <span className="mt-1 block text-table text-ice-70">{link.hint}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <ul className="mt-6 flex flex-wrap gap-2">
           {DATA_SOURCES.map((s) => (
             <li key={s} className="rounded-full border border-navy-3 px-3 py-1 text-table text-ice-70">
               {s}
