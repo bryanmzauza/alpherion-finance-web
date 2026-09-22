@@ -145,7 +145,7 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 - [X] `cvm_documents.py` (IPE: metadados + link; incremental por data de entrega; **nunca baixa o documento** — há teste que conta as requisições)
 - [X] `tesouro.py` (CSV do Tesouro Transparente, decimal pt-BR, slug estável por vencimento) e `bcb.py` (códigos SGS documentados num só lugar; HTML do SGS fora do ar não vira série vazia) — **fontes liberadas** (ODbL / dados abertos)
 - [ ] `coingecko.py` (só dev até a fonte licenciada — ADR-017)
-- [ ] `adjust.py` (fator acumulado) e `indicators.py` (fórmulas; `null` com motivo quando falta entrada; testes contra casos à mão)
+- [X] `adjust.py` (fator acumulado de proventos, desdobramento, grupamento e bonificação; evento sem fechamento `cum` é ignorado) e `indicators.py` (fórmulas; `null` **com motivo** quando falta entrada; `FORMULAS_VERSION` em `inputs`) + `cvm_accounts.py` (plano de contas → conceitos; depreciação por nome, porque a CVM não a padroniza). Testes contra casos calculados à mão
 - [ ] `events.py`: monta `market_events` a partir de `corporate_actions`, `company_documents` e `content/agenda-macro.json`
 - [X] Proteções §7.5 em `sources/http.py`: lista fechada de hosts (revalidada a cada redirect), limite de download pelo que chega (não pelo `Content-Length`), limite de descompressão e neutralização de caminho de fuga no ZIP — com testes
 
