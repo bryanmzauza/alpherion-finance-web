@@ -6,8 +6,9 @@ import { SITE_NAME, SITE_TAGLINE } from "@/content/site";
 // Imagem Open Graph no estilo da thumbnail (site.md §9): navy, uma palavra dourada
 // no título, tagline em Inter. Usado pelos opengraph-image.tsx de cada rota.
 // Fontes em WOFF (o Satori não lê WOFF2); só existem para este gerador.
-// As rotas são estáticas: as imagens saem no build (cwd = apps/web), nunca em runtime —
-// por isso a leitura por `fs` relativa ao cwd basta e o standalone não precisa das fontes.
+// A OG da página do ativo é **dinâmica** (são milhares de tickers), então este gerador
+// roda em runtime dentro do standalone — por isso o Dockerfile copia `app/fonts/og`
+// para a imagem. Sem elas, a OG do ativo quebraria só em produção.
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";

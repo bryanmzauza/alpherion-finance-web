@@ -29,6 +29,9 @@ WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
+# Fontes do gerador de OG: a imagem da página do ativo é dinâmica (milhares de tickers)
+# e o Satori as lê em runtime. Sem isto, a OG do ativo só quebraria em produção.
+COPY --from=build --chown=node:node /repo/apps/web/app/fonts/og ./apps/web/app/fonts/og
 # Migrations do schema `app` (site.md §10). `dist/migrate.mjs` é o `scripts/migrate.mjs`
 # empacotado pelo esbuild com drizzle-orm e postgres embutidos: o standalone do Next não
 # expõe node_modules (as deps do servidor vão para dentro do bundle) e drizzle-kit é devDependency.
