@@ -38,3 +38,40 @@ export function videoJsonLd(video: PublishedVideo): Record<string, unknown> {
     inLanguage: "pt-BR",
   };
 }
+
+// JSON-LD `Corporation` da página do ativo (§9). Só cadastro: razão social, ticker, CNPJ
+// e setor — nada de cotação nem indicador. Dado de mercado muda a cada carga e o
+// structured data seria sempre o de ontem; pior, alimentaria rich snippets com número
+// desatualizado.
+export function companyJsonLd(profile: {
+  ticker: string;
+  company_name: string;
+  cnpj: string | null;
+  sector: string | null;
+}): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Corporation",
+    name: profile.company_name,
+    tickerSymbol: profile.ticker,
+    ...(profile.cnpj ? { taxID: profile.cnpj } : {}),
+    ...(profile.sector ? { industry: profile.sector } : {}),
+    inLanguage: "pt-BR",
+  };
+}
+
+// JSON-LD `BreadcrumbList` — a trilha que o Google mostra abaixo do título.
+export function breadcrumbJsonLd(
+  trail: { name: string; path: string }[],
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: siteUrl(item.path),
+    })),
+  };
+}

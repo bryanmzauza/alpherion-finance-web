@@ -1,9 +1,11 @@
 import type { MetadataRoute } from "next";
 import { LEGAL } from "@/lib/legal";
+import { MARKET_CLASSES } from "@/lib/market-classes";
 import { siteUrl } from "@/lib/seo";
 
-// Sitemap das páginas da Fase 0. Os sitemaps segmentados por classe de ativo
-// (/sitemap/acoes.xml etc.) entram na Etapa 3. /lista/* e /design ficam de fora.
+// Sitemap das páginas fixas. As páginas de ativo ficam nos sitemaps por classe
+// (/sitemap/acoes.xml etc.), que o robots.txt também anuncia. /lista/* e /design ficam
+// de fora (robots.ts).
 const BUILT_AT = new Date();
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -17,6 +19,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     page("/", 1),
     page("/raio-x", 0.9),
+    ...MARKET_CLASSES.map((c) => page(`/${c.slug}`, 0.8)),
     page("/videos", 0.8),
     page("/sobre", 0.6),
     page("/contato", 0.4),

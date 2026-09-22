@@ -169,11 +169,11 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 
 ### 3.5 Páginas de mercado (`app/(market)/`, ISR, container 1280)
 
-- [ ] `components/market/`: `PriceHeader`, `HistoryChart` (leve, client-only, lazy, tabela como fallback), `IndicatorGrid` (tooltip a partir de `content/indicadores/*.mdx`), `FinancialTable`, `DividendTable` + `DividendChart`, `EventList` (eventos corporativos + próximos data-com/pagamentos), `DocumentList` (comunicados CVM: categoria, assunto, data, link), `IndexCompositionTable`, `TreasuryTable`, `CryptoTable`, `SourceBadge`, `AssetCTA`, `TickerLink`, `SameSectorList`
-- [ ] Rotas: `/acoes`, `/acoes/[ticker]` (com abas Eventos e Comunicados, cadastro, mesmo setor), `/fiis`, `/fiis/[ticker]`, `/etfs`, `/etfs/[ticker]`, `/bdrs`, `/bdrs/[ticker]`, `/indices`, `/indices/[slug]`, `/tesouro`, `/tesouro/[slug]`, `/cripto`, `/cripto/[id]`
-- [ ] Redirects: ticker minúsculo → maiúsculo (301); ticker na rota da classe errada → 301 para a classe certa; inexistente → 404 com busca; `www.` → apex
-- [ ] `app/api/revalidate` (token) chamado pelo job `revalidate_pages`
-- [ ] Sitemaps segmentados por classe (`/sitemap/acoes.xml`, `fiis`, `etfs`, `bdrs`, `indices`, `tesouro`, `cripto`) com `lastmod`; título/description por template; JSON-LD `Corporation` + `BreadcrumbList`; OG com ticker dourado + cotação; `Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400`
+- [X] `components/market/`: `SourceBadge`, `Value` (o "—" com motivo), `PriceHeader`, `HistoryChart` (SVG puro, sem biblioteca — o orçamento de JS não comporta uma), `IndicatorGrid` (definições em `content/indicadores.ts`), `FinancialTable`, `DividendTable`, `DocumentList`, `SecurityTable`, `SameSectorList`, `TickerLink`, `AssetCTA`. **Faltam** `IndexCompositionTable`, `TreasuryTable`, `CryptoTable`, `EventList` e `DividendChart`
+- [X] Rotas `/acoes`, `/fiis`, `/etfs`, `/bdrs` e a página do ativo (histórico, indicadores, proventos, demonstrações, comunicados, cadastro, mesmo setor, CTA) — uma página para as quatro classes. **Faltam** `/indices`, `/tesouro` e `/cripto`
+- [X] Redirects: ticker minúsculo → maiúsculo (301) e ticker na classe errada → 301 para a classe certa; inexistente → 404. **Faltam** a busca no 404 (depende da `GlobalSearch`, Etapa 4.1) e `www.` → apex (nginx)
+- [X] `app/api/revalidate` (token comparado em tempo constante) chamado pelo job `revalidate_pages`
+- [X] Sitemaps por classe (`acoes`, `fiis`, `etfs`, `bdrs`), anunciados no `robots.txt`; título/description por template; JSON-LD `Corporation` (só cadastro) + `BreadcrumbList`; `Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400`. **Faltam** os sitemaps de índices/Tesouro/cripto e o OG por ticker
 - [ ] Seção "Dados de mercado" da landing linkando de verdade (agora com 7 links: ações, FIIs, ETFs, BDRs, índices, Tesouro, cripto)
 
 ### 3.6 Operação
