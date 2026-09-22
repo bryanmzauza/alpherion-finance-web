@@ -10,6 +10,7 @@
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 19/09/2026 | Plano inicial a partir do site.md. Decisões: monorepo, SemVer com tags por marco, Better Auth. Auth antecipada para o início do Bloco 2 (a carteira exige sessão) |
 | 1.0     | 19/09/2026 | Nota (sem mudança de escopo): Etapa 1 entregue com Next.js 16 (site.md §3.4 diz "15+"); texto da etapa ajustado                                                    |
+| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): Etapa 3.2 — fontes da CVM entregues (cadastro, DFP/ITR, FCA, informes de FII, IPE). O leitor do FRE (free float) fica para a entrega dos indicadores, que é onde o número é usado; até lá `company_facts.free_float` fica `null` e a página mostra "—" |
 | 2.0     | 22/09/2026 | Nota (sem mudança de escopo): Etapa 2.6 entregue — compose de produção, nginx, scripts de operação, `deploy.yml` e runbook de deploy. Falta só a parte manual (domínio, Cloudflare, VPS, e-mail) |
 | 2.0     | 21/09/2026 | Nota (sem mudança de escopo): Etapa 2.4 entregue com CSP sem nonce no site público e orçamento de JS de 170 kB gzip (site.md §7.3 e §9 revisados com a justificativa) |
 | 2.0     | 20/09/2026 | **Paridade funcional com o Status Invest** ([ADR-018](adr/ADR-018-paridade-status-invest.md)). v1.0 adiado de 25/09 para **09/10/2026**. Entram no v1.0: portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição, comunicados CVM. v1.0 dividido em quatro blocos (`v0.2.0` → `v0.4.0` → `v1.0.0`). v1.x reordenado (11 entregas) com calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento. IR na Fase 1; internacional na Fase 2 (ADR-019 pendente). Etapas 0–2 inalteradas |
@@ -140,8 +141,8 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 - [X] `cotahist_parser.py` (layout posicional oficial, rev. 01 de 13/04/2017: 245 bytes, preços `(11)V99`, `FATCOT` normalizado para preço unitário, filtro de mercado à vista) + `b3_cotahist.py` (download diário/anual, arquivo descartado depois) — fonte licenciada troca só o `b3_cotahist.py` (ADR-017)
 - [ ] `b3_listing.py` (ações, units, **ETFs, BDRs**, FIIs) + `b3_events.py` (eventos; fallback CVM/FRE documentado)
 - [ ] `b3_indices.py`: carteira teórica e fechamento dos índices (Ibovespa, IFIX, IDIV, SMLL, IBRX 100, IBRA, IFNC, IMOB, UTIL); fallback = manter a última carteira e expor a data
-- [ ] `cvm.py` (cadastro, DFP, FRE/FCA, informes de FII) + `cvm_statements.py` (formato longo; versão mais recente por período)
-- [ ] `cvm_documents.py` (IPE: metadados + link; incremental por data de entrega; **nunca baixa o documento**)
+- [X] `cvm.py` (cadastro de cias e de FIIs, DFP/ITR, FCA, informes mensais de FII) + `cvm_statements.py` (formato longo; escala de moeda normalizada, só o exercício corrente, versão mais recente por período). **Falta o FRE** (free float) — vai junto com os indicadores que o usam
+- [X] `cvm_documents.py` (IPE: metadados + link; incremental por data de entrega; **nunca baixa o documento** — há teste que conta as requisições)
 - [X] `tesouro.py` (CSV do Tesouro Transparente, decimal pt-BR, slug estável por vencimento) e `bcb.py` (códigos SGS documentados num só lugar; HTML do SGS fora do ar não vira série vazia) — **fontes liberadas** (ODbL / dados abertos)
 - [ ] `coingecko.py` (só dev até a fonte licenciada — ADR-017)
 - [ ] `adjust.py` (fator acumulado) e `indicators.py` (fórmulas; `null` com motivo quando falta entrada; testes contra casos à mão)

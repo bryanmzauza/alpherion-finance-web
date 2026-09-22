@@ -118,37 +118,93 @@ def download(
         return _fetch(session)
 
 
-def extract_single(zip_path: Path, dest_dir: Path, *, max_bytes: int) -> Path:
-    """Extrai o único arquivo de um ZIP, recusando `zip bomb` e caminho de fuga.
+def safe_name(member: zipfile.ZipInfo, archive_name: str) -> str:
+    """Nome de arquivo sem diretório e sem caminho de fuga (`../`, caminho absoluto)."""
+    name = Path(member.filename.replace("\\", "/")).name
+    if not name or name.startswith("."):
+        raise SourceError(f"{archive_name}: nome de arquivo suspeito: {member.filename!r}")
+    return name
+
+
+def _extract_member(
+    archive: zipfile.ZipFile,
+    member: zipfile.ZipInfo,
+    dest: Path,
+    *,
+    max_bytes: int,
+    archive_name: str,
+) -> int:
+    """Escreve um membro em `dest`, cortando se a descompressão passar de `max_bytes`.
 
     Checamos o tamanho **declarado** antes de extrair e o **real** durante a escrita:
     o cabeçalho do ZIP é dado do atacante como qualquer outro.
     """
+    if member.file_size > max_bytes:
+        raise SourceError(
+            f"{archive_name}: {member.filename} declara {member.file_size} bytes "
+            f"descomprimidos (limite {max_bytes}, §7.5)"
+        )
+    written = 0
+    with archive.open(member) as source, dest.open("wb") as target:
+        while chunk := source.read(CHUNK):
+            written += len(chunk)
+            if written > max_bytes:
+                target.close()
+                dest.unlink(missing_ok=True)
+                raise SourceError(f"{archive_name}: descompressão passou de {max_bytes} bytes")
+            target.write(chunk)
+    return written
+
+
+def extract_all(
+    zip_path: Path,
+    dest_dir: Path,
+    *,
+    max_bytes: int,
+    match: str | None = None,
+) -> list[Path]:
+    """Extrai os arquivos de um ZIP com vários membros (os pacotes da CVM têm dezenas).
+
+    `max_bytes` é o teto **por arquivo** e também o do total: um pacote da DFP traz
+    BPA, BPP, DRE, DFC e DMPL do ano inteiro, e só lemos alguns deles — `match` filtra
+    por trecho do nome antes de gastar disco.
+    """
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    extracted: list[Path] = []
+    total = 0
+    with zipfile.ZipFile(zip_path) as archive:
+        for member in archive.infolist():
+            if member.is_dir():
+                continue
+            name = safe_name(member, zip_path.name)
+            if match is not None and match.lower() not in name.lower():
+                continue
+            dest = dest_dir / name
+            total += _extract_member(
+                archive, member, dest, max_bytes=max_bytes, archive_name=zip_path.name
+            )
+            if total > max_bytes:
+                for path in [*extracted, dest]:
+                    path.unlink(missing_ok=True)
+                raise SourceError(f"{zip_path.name}: descompressão total passou de {max_bytes}")
+            extracted.append(dest)
+    if not extracted:
+        raise SourceError(f"{zip_path.name}: nenhum arquivo casou com {match!r}")
+    logger.info("extraídos %d arquivos de %s (%d bytes)", len(extracted), zip_path.name, total)
+    return extracted
+
+
+def extract_single(zip_path: Path, dest_dir: Path, *, max_bytes: int) -> Path:
+    """Extrai o único arquivo de um ZIP, recusando `zip bomb` e caminho de fuga."""
     dest_dir.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip_path) as archive:
         members = [m for m in archive.infolist() if not m.is_dir()]
         if len(members) != 1:
             raise SourceError(f"{zip_path.name}: esperado 1 arquivo, veio {len(members)}")
         member = members[0]
-
-        name = Path(member.filename).name  # descarta qualquer diretório do caminho
-        if not name or name.startswith("."):
-            raise SourceError(f"{zip_path.name}: nome de arquivo suspeito: {member.filename!r}")
-        if member.file_size > max_bytes:
-            raise SourceError(
-                f"{zip_path.name}: declara {member.file_size} bytes descomprimidos "
-                f"(limite {max_bytes}, §7.5)"
-            )
-
-        dest = dest_dir / name
-        written = 0
-        with archive.open(member) as source, dest.open("wb") as target:
-            while chunk := source.read(CHUNK):
-                written += len(chunk)
-                if written > max_bytes:
-                    target.close()
-                    dest.unlink(missing_ok=True)
-                    raise SourceError(f"{zip_path.name}: descompressão passou de {max_bytes} bytes")
-                target.write(chunk)
+        dest = dest_dir / safe_name(member, zip_path.name)  # descarta o diretório do caminho
+        written = _extract_member(
+            archive, member, dest, max_bytes=max_bytes, archive_name=zip_path.name
+        )
     logger.info("extraído %s (%d bytes) → %s", zip_path.name, written, dest)
     return dest

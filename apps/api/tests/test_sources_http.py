@@ -9,7 +9,13 @@ from pathlib import Path
 import httpx
 import pytest
 
-from alpherion.data.sources.http import SourceError, check_host, download, extract_single
+from alpherion.data.sources.http import (
+    SourceError,
+    check_host,
+    download,
+    extract_all,
+    extract_single,
+)
 
 CVM = "https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/DFP/DADOS/dfp_cia_aberta_2025.zip"
 
@@ -117,3 +123,56 @@ def test_zip_com_varios_arquivos_e_recusado(tmp_path: Path) -> None:
     zip_path.write_bytes(buffer.getvalue())
     with pytest.raises(SourceError, match="esperado 1 arquivo"):
         extract_single(zip_path, tmp_path / "out", max_bytes=1024)
+
+
+def _zip_many(tmp_path: Path, members: dict[str, bytes]) -> Path:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, content in members.items():
+            archive.writestr(name, content)
+    path = tmp_path / "pacote-cvm.zip"
+    path.write_bytes(buffer.getvalue())
+    return path
+
+
+def test_extrai_varios_arquivos(tmp_path: Path) -> None:
+    """Os pacotes da CVM trazem uma demonstração por arquivo, dezenas por ano."""
+    zip_path = _zip_many(tmp_path, {"dfp_DRE_con.csv": b"1", "dfp_BPA_con.csv": b"2"})
+    paths = extract_all(zip_path, tmp_path / "out", max_bytes=1024)
+    assert sorted(p.name for p in paths) == ["dfp_BPA_con.csv", "dfp_DRE_con.csv"]
+
+
+def test_extrai_so_o_que_casa_com_o_filtro(tmp_path: Path) -> None:
+    """Filtrar antes de escrever evita gastar disco com o que não vamos ler."""
+    zip_path = _zip_many(
+        tmp_path, {"fca_capital_social_2025.csv": b"1", "fca_auditor_2025.csv": b"2"}
+    )
+    (path,) = extract_all(zip_path, tmp_path / "out", max_bytes=1024, match="capital_social")
+    assert path.name == "fca_capital_social_2025.csv"
+    assert not (tmp_path / "out" / "fca_auditor_2025.csv").exists()
+
+
+def test_filtro_sem_resultado_e_erro_e_nao_lista_vazia(tmp_path: Path) -> None:
+    """Silenciar isso viraria "a CVM não publicou nada este ano" — sempre falso."""
+    zip_path = _zip_many(tmp_path, {"fca_auditor_2025.csv": b"2"})
+    with pytest.raises(SourceError, match="nenhum arquivo casou"):
+        extract_all(zip_path, tmp_path / "out", max_bytes=1024, match="capital_social")
+
+
+def test_extract_all_recusa_zip_bomb(tmp_path: Path) -> None:
+    zip_path = _zip_many(tmp_path, {"bomba.csv": b"\0" * (1 << 20)})
+    with pytest.raises(SourceError, match="descomprimidos"):
+        extract_all(zip_path, tmp_path / "out", max_bytes=1024)
+
+
+def test_extract_all_corta_pela_soma_dos_arquivos(tmp_path: Path) -> None:
+    """Cada membro cabe no limite; o pacote inteiro, não — o corte é no total."""
+    zip_path = _zip_many(tmp_path, {f"parte{i}.csv": b"x" * 400 for i in range(5)})
+    with pytest.raises(SourceError, match="descompressão total"):
+        extract_all(zip_path, tmp_path / "out", max_bytes=1000)
+
+
+def test_extract_all_neutraliza_caminho_de_fuga(tmp_path: Path) -> None:
+    zip_path = _zip_many(tmp_path, {"../../fuga.csv": b"x"})
+    (path,) = extract_all(zip_path, tmp_path / "out", max_bytes=1024)
+    assert path.parent == tmp_path / "out"
