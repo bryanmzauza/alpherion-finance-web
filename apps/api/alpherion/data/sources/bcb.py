@@ -85,7 +85,9 @@ DAILY_HISTORY_START: Final = date(1986, 1, 1)
 #: Esperas entre tentativas de uma janela. O SGS devolve, de vez em quando, uma página
 #: de erro em HTML (status 200) ou 5xx para uma janela que responde normal segundos
 #: depois; sem nova tentativa, a série perderia dez anos por um soluço do servidor.
-RETRY_DELAYS: tuple[float, ...] = (2.0, 5.0, 10.0)
+#: Na carga completa de 23/09/2026 o SGS ficou mais de 17 s respondendo 502 para a PTAX
+#: de compra; as esperas cobrem pouco mais de 1,5 min antes de desistir da janela.
+RETRY_DELAYS: tuple[float, ...] = (3.0, 10.0, 30.0, 60.0)
 
 
 class _TransientError(SourceError):

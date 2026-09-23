@@ -24,6 +24,7 @@ import {
   optional,
 } from "@/lib/market";
 import { companyJsonLd, breadcrumbJsonLd } from "@/lib/seo";
+import { percent } from "@/lib/format";
 
 type Params = { classe: string; ticker: string };
 
@@ -160,6 +161,12 @@ function Registration({ profile }: { profile: Awaited<ReturnType<typeof getSecur
     ["Subsetor", profile.subsector],
     ["Segmento", profile.segment],
     ["Segmento de listagem", profile.listing_segment],
+    [
+      "Free float (FRE, CVM)",
+      profile.free_float
+        ? `${percent(profile.free_float)}${profile.free_float_date ? ` · FRE de ${profile.free_float_date.slice(0, 4)}` : ""}`
+        : null,
+    ],
     ["Razão do BDR", profile.bdr_ratio],
     ["Índice replicado", profile.etf_index_slug],
   ];

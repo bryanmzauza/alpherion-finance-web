@@ -127,6 +127,10 @@ class SecurityProfile(Block):
     listing_segment: str | None = None
     etf_index_slug: str | None = None
     bdr_ratio: str | None = None
+    #: Fração das ações em circulação, do FRE (CVM) — fonte diferente do resto do
+    #: cadastro, por isso a data de referência vem junto.
+    free_float: Decimal | None = None
+    free_float_date: dt.date | None = None
     status: str
 
 

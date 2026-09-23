@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -316,6 +316,26 @@ class CompanyFactRow:
     shares_outstanding: Decimal | None
     capital_social: Decimal | None
     version: int
+    #: Fração das ações em circulação (fora de controladores e tesouraria), do arquivo
+    #: `distribuicao_capital`: 0,612 = 61,2%.
+    free_float: Decimal | None = None
+
+
+def parse_free_float(rows: Iterator[Row]) -> Iterator[tuple[str, date, int, Decimal]]:
+    """Lê `fre_cia_aberta_distribuicao_capital_<ano>.csv`: (CNPJ, data, versão, fração).
+
+    A CVM publica o percentual em pontos (`61.212000`); guardamos fração, como toda
+    razão do produto.
+    """
+    for row in rows:
+        cnpj = row.digits("cnpj_companhia", "cnpj_cia")
+        reference = row.date("data_referencia", "dt_refer")
+        percent = row.decimal("percentual_total_acoes_circulacao")
+        if cnpj is None or reference is None or percent is None:
+            continue
+        if not Decimal(0) <= percent <= Decimal(100):
+            continue  # percentual fora de 0–100 é erro de digitação no formulário
+        yield cnpj, reference, row.integer("versao") or 1, percent / Decimal(100)
 
 
 def parse_company_facts(rows: Iterator[Row]) -> Iterator[CompanyFactRow]:
@@ -346,23 +366,38 @@ def parse_company_facts(rows: Iterator[Row]) -> Iterator[CompanyFactRow]:
 
 
 def fetch_company_facts(year: int, *, http: httpx.Client | None = None) -> list[CompanyFactRow]:
-    """Capital social do FRE do ano, uma linha por companhia (maior versão).
+    """Capital social e free float do FRE do ano, uma linha por companhia (maior versão).
 
-    O filtro é o nome exato do arquivo: o ZIP traz também `capital_social_classe_acao`
-    e `capital_social_titulo_conversivel`, com outras colunas.
+    O filtro é o nome exato dos dois arquivos: o ZIP traz também `capital_social_classe_acao`,
+    `distribuicao_capital_classe_acao` e outros, com colunas diferentes.
     """
+    capital_file = f"capital_social_{year}"
+    float_file = f"distribuicao_capital_{year}"
     with _downloaded_zip(
-        fre_url(year), f"fre_{year}.zip", http, match=f"capital_social_{year}"
+        fre_url(year), f"fre_{year}.zip", http, match=(capital_file, float_file)
     ) as files:
         facts: dict[tuple[str, date], CompanyFactRow] = {}
+        floats: dict[tuple[str, date], tuple[int, Decimal]] = {}
         for path in files:
+            if float_file in path.name:
+                for cnpj, reference, version, value in parse_free_float(read_rows(path)):
+                    current = floats.get((cnpj, reference))
+                    if current is None or version > current[0]:
+                        floats[(cnpj, reference)] = (version, value)
+                continue
             for fact in parse_company_facts(read_rows(path)):
                 key = (fact.cnpj or str(fact.cvm_code), fact.reference_date)
-                current = facts.get(key)
-                if current is None or fact.version > current.version:
+                existing = facts.get(key)
+                if existing is None or fact.version > existing.version:
                     facts[key] = fact
-    logger.info("FRE %d: %d fatos de capital social", year, len(facts))
-    return list(facts.values())
+    merged = [
+        replace(fact, free_float=floats[key][1]) if key in floats else fact
+        for key, fact in facts.items()
+    ]
+    logger.info(
+        "FRE %d: %d fatos de capital social, %d com free float", year, len(merged), len(floats)
+    )
+    return merged
 
 
 # --- demonstrações ----------------------------------------------------------
@@ -409,7 +444,7 @@ def _downloaded_zip(
     name: str,
     http: httpx.Client | None,
     *,
-    match: str | None = None,
+    match: str | tuple[str, ...] | None = None,
 ) -> Iterator[list[Path]]:
     with TemporaryDirectory(prefix="alpherion-cvm-") as tmp:
         tmp_path = Path(tmp)

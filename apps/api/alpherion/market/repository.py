@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from alpherion.db.models import (
     CompanyDocument,
+    CompanyFact,
     CorporateAction,
     DailyQuote,
     DataSource,
@@ -298,8 +299,23 @@ async def get_security(session: AsyncSession, ticker: str) -> schemas.SecurityDe
     if security is None:
         return None
 
+    free_float = None
+    if security.cvm_code is not None:
+        free_float = (
+            await session.execute(
+                select(CompanyFact.free_float, CompanyFact.reference_date)
+                .where(
+                    CompanyFact.cvm_code == security.cvm_code, CompanyFact.free_float.is_not(None)
+                )
+                .order_by(CompanyFact.reference_date.desc())
+                .limit(1)
+            )
+        ).first()
+
     profile = schemas.SecurityProfile(
         source=await source_ref(session, "b3", document="Listagem B3"),
+        free_float=free_float[0] if free_float else None,
+        free_float_date=free_float[1] if free_float else None,
         ticker=security.ticker,
         type=security.type,
         company_name=security.company_name,

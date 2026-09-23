@@ -174,3 +174,35 @@ class _Model:
 
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__])
+
+
+def test_anotacoes_do_job_vao_para_etl_runs() -> None:
+    """A documentação dos jobs promete as anotações em `etl_runs`; antes, elas se perdiam."""
+    from datetime import date as _date
+    from decimal import Decimal as _Decimal
+    from unittest.mock import MagicMock
+
+    from alpherion.data.jobs.base import _finish
+    from alpherion.db.models import EtlRun
+
+    execucao = EtlRun(job="x", status="running")
+    _finish(
+        MagicMock(),
+        execucao,
+        "success",
+        None,
+        10,
+        {"papeis_por_tipo": {"stock": 841}, "dia": _date(2026, 9, 22), "v": _Decimal("1.5")},
+    )
+    assert execucao.notes == {"papeis_por_tipo": {"stock": 841}, "dia": "2026-09-22", "v": "1.5"}
+
+
+def test_sem_anotacoes_a_coluna_fica_nula() -> None:
+    from unittest.mock import MagicMock
+
+    from alpherion.data.jobs.base import _finish
+    from alpherion.db.models import EtlRun
+
+    execucao = EtlRun(job="x", status="running")
+    _finish(MagicMock(), execucao, "success", None, 0, {})
+    assert execucao.notes is None

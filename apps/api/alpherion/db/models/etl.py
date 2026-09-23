@@ -8,8 +8,10 @@ e do agendamento idempotente (um job não roda duas vezes para o mesmo período)
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Any
 
 from sqlalchemy import BigInteger, Date, DateTime, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from alpherion.db.base import Base
@@ -38,6 +40,8 @@ class EtlRun(Base):
     status: Mapped[str] = mapped_column(String(12))
     rows: Mapped[int | None] = mapped_column(Integer)
     error: Mapped[str | None] = mapped_column(Text)
+    #: O que o job anotou na execução (`JobContext.notes`): contagens, blocos com falha.
+    notes: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     created_at: Mapped[CreatedAt]
 
 

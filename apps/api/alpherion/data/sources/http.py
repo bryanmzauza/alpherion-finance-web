@@ -161,7 +161,7 @@ def extract_all(
     dest_dir: Path,
     *,
     max_bytes: int,
-    match: str | None = None,
+    match: str | tuple[str, ...] | None = None,
 ) -> list[Path]:
     """Extrai os arquivos de um ZIP com vários membros (os pacotes da CVM têm dezenas).
 
@@ -177,7 +177,8 @@ def extract_all(
             if member.is_dir():
                 continue
             name = safe_name(member, zip_path.name)
-            if match is not None and match.lower() not in name.lower():
+            wanted = (match,) if isinstance(match, str) else match
+            if wanted is not None and not any(w.lower() in name.lower() for w in wanted):
                 continue
             dest = dest_dir / name
             total += _extract_member(

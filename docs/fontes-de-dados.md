@@ -37,6 +37,8 @@ Documentos (cópias em `fontes-de-dados/`):
 
 **Endereços usados** (revisados em 23/09/2026, todos sob os mesmos termos acima e o mesmo bloqueio do ADR-017): `arquivos.b3.com.br` (cadastro de instrumentos, CSV diário), `sistemaswebb3-listados.b3.com.br` (emissores, classificação setorial, eventos, carteira teórica e fechamento dos índices) e `bvmf.bmfbovespa.com.br` (COTAHIST). O host `sistemaswebb3-indices.b3.com.br`, citado antes, não existe.
 
+**Sem fonte estruturada (23/09/2026):** o **índice de referência dos ETFs** e a **razão de conversão dos BDRs**. `GetListedSupplementFunds` e `GetListedSupplementCompany` não trazem esses campos, o cadastro de instrumentos também não, e a página de fundos da B3 (`fundsPage`) respondia erro 500. Inferir pelo nome do fundo erraria ("IBOVESPA SMART DIVIDENDOS" não replica o Ibovespa); os campos ficam vazios até haver fonte — o provedor licenciado do ADR-017 é o candidato natural.
+
 **O que NÃO depende da B3:** todo o schema `market` vindo da CVM (demonstrações, cadastro, comunicados, informes de FII, fundos), Tesouro, BCB e a agenda macro. Indicadores que **não** usam preço (ROE, ROIC, margens, dívida líquida/EBITDA, liquidez corrente, LPA, VPA, CAGR) podem ser publicados. Indicadores com preço (P/L, P/VP, EV/EBITDA, PSR, DY, market cap) e qualquer cotação/gráfico, não.
 
 ## CoinGecko — o que foi verificado

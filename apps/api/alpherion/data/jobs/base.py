@@ -22,6 +22,7 @@ Cada job é um módulo executável: `python -m alpherion.data.jobs.<job>`.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import secrets
@@ -165,7 +166,7 @@ def run(
         finally:
             # No `finally` de propósito: sucesso, pulo ou falha, a linha de `etl_runs`
             # é sempre fechada — é dela que sai o alerta de frescor.
-            _finish(session, etl_run, status, error, context.rows)
+            _finish(session, etl_run, status, error, context.rows, context.notes)
 
 
 @contextmanager
@@ -177,10 +178,19 @@ def _maybe_lock(name: str, *, enabled: bool) -> Iterator[None]:
         yield
 
 
-def _finish(session: Session, etl_run: EtlRun, status: str, error: str | None, rows: int) -> None:
+def _finish(
+    session: Session,
+    etl_run: EtlRun,
+    status: str,
+    error: str | None,
+    rows: int,
+    notes: dict[str, Any] | None = None,
+) -> None:
     etl_run.status = status
     etl_run.error = error
     etl_run.rows = rows
+    # `default=str`: data e Decimal viram texto em vez de derrubar o fechamento da linha.
+    etl_run.notes = json.loads(json.dumps(notes, default=str)) if notes else None
     etl_run.finished_at = datetime.now(UTC)
     session.add(etl_run)
     session.commit()

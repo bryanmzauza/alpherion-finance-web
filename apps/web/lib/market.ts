@@ -62,6 +62,9 @@ export type SecurityProfile = Block & {
   listing_segment: string | null;
   etf_index_slug: string | null;
   bdr_ratio: string | null;
+  /** Fração em circulação, do FRE (CVM). */
+  free_float?: Num;
+  free_float_date?: string | null;
   status: string;
 };
 

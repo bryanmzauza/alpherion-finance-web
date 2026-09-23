@@ -190,6 +190,25 @@ def test_fre_fica_so_com_o_capital_integralizado(tmp_path: Path) -> None:
     assert fact.reference_date == date(2026, 12, 31)
 
 
+FRE_DISTRIBUICAO_HEADER = (
+    "CNPJ_Companhia;Data_Referencia;Versao;ID_Documento;Nome_Companhia;"
+    "Quantidade_Total_Acoes_Circulacao;Percentual_Total_Acoes_Circulacao"
+)
+
+
+def test_free_float_vira_fracao(tmp_path: Path) -> None:
+    """A CVM publica 61.212000 (pontos percentuais); guardamos 0,61212."""
+    path = _csv(
+        tmp_path,
+        "fre_cia_aberta_distribuicao_capital_2026.csv",
+        FRE_DISTRIBUICAO_HEADER,
+        "33.000.167/0001-01;2026-12-31;12;161309;PETROBRAS;7889437525;61.212000",
+        "11.111.111/0001-11;2026-12-31;1;1;DIGITACAO ERRADA;1;6121.2",
+    )
+    (linha,) = list(cvm.parse_free_float(read_rows(path)))
+    assert linha == ("33000167000101", date(2026, 12, 31), 12, Decimal("0.61212"))
+
+
 # --- IPE --------------------------------------------------------------------
 
 IPE_HEADER = (

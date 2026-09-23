@@ -1,4 +1,4 @@
-"""Capital social das companhias (FRE da CVM): quantas ações existem.
+"""Capital social e free float das companhias (FRE da CVM).
 
 Fonte liberada. É o número que transforma lucro em LPA, patrimônio em VPA e preço em
 valor de mercado — sem ele, P/L, P/VP e market cap ficam "—" com o motivo
@@ -55,6 +55,7 @@ def run(*, year: int | None = None) -> None:
                 "reference_date": fact.reference_date,
                 "shares_outstanding": fact.shares_outstanding,
                 "capital_social": fact.capital_social,
+                "free_float": fact.free_float,
             }
         ctx.wrote(upsert(ctx.session, CompanyFact, list(rows.values())))
         ctx.notes["companhias_sem_papel_listado"] = sem_papel
