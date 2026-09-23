@@ -28,7 +28,7 @@ jobs:
     name: verificações
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: pnpm/action-setup@v4
@@ -67,7 +67,7 @@ jobs:
             contexto: apps/api
             dockerfile: apps/api/Dockerfile
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: docker/setup-buildx-action@v3
