@@ -71,7 +71,7 @@ O site tem três públicos:
 | `/aviso-legal` | Aviso legal / disclaimer CVM | Ver §8.3 | SSG | 0 |
 | `/contato` | Contato, canal do encarregado (LGPD) e correção de dados | E-mail de contato, de privacidade e de "encontrei um erro no dado". Sem formulário no v1 | SSG | 0 |
 | `/planos` | Planos e preços | Só na Fase 2, com pagamento | SSG | 2 |
-| `/sitemap.xml` · `/robots.txt` · `/manifest.webmanifest` | Técnicas | Geradas pelo Next; sitemap segmentado (`/sitemap/acoes.xml` etc.) | — | 0 |
+| `/sitemap.xml` · `/robots.txt` · `/manifest.webmanifest` | Técnicas | Geradas pelo Next; sitemap segmentado (`/sitemaps/acoes.xml` etc.) | — | 0 |
 
 #### Header do site público (todas as páginas de `alpherion.com.br`)
 
@@ -357,7 +357,7 @@ A lista de e-mail (`subscribers`, status, tokens de confirmação e de descadast
 | Tabela | Campos principais | Notas |
 | --- | --- | --- |
 | `portfolios` | `id, user_id, name, base_currency='BRL', created_at` | Uma por usuário no v1 (o modelo suporta N) |
-| `transactions` | `id, portfolio_id, asset_id, date, side ('buy','sell'), quantity numeric(28,10), price numeric(18,6), fees numeric(18,2), source ('manual','csv','b3_import','b3_api'), import_batch_id?, external_key?, note?` | Fonte da verdade da posição. `external_key` = hash (ativo, data, tipo, qtd, preço) para dedupe de importação. Cifrada na aplicação (§7.4) |
+| `transactions` | `id, portfolio_id, asset_id, date, side ('buy','sell'), quantity numeric(28,10), price numeric(18,6), fees numeric(18,2), source ('manual','csv','b3_import','b3_api'), import_batch_id?, external_key?, note?` | Fonte da verdade da posição. `external_key` = **HMAC** (chave derivada da de cifra) de ativo, data, tipo, qtd, preço e, a partir da segunda linha idêntica no mesmo arquivo, a ocorrência — para dedupe de importação. Cifrada na aplicação (§7.4). *Nota (23/09/2026): na implementação, qtd/preço/taxas/nota ficam num único `payload` AES-256-GCM com `key_version`; as colunas numéricas não existem em claro.* |
 | `income_events` | `id, portfolio_id, asset_id, date, kind ('dividend','jcp','fii_income','interest','other'), gross numeric(18,2), net numeric(18,2), source, import_batch_id?, external_key?` | Proventos **recebidos** pelo usuário (diferente de `market.corporate_actions`, que é o provento anunciado pelo emissor) |
 | `position_adjustments` | `id, portfolio_id, asset_id, quantity? \| value_brl?, avg_price?, note?, updated_at` | O "adicionar à mão" de hoje: posição informada sem histórico. Constraint: `quantity` **ou** `value_brl` |
 | `positions` (view materializada) | `portfolio_id, asset_id, quantity, avg_price, cost_brl` | = Σ `transactions` (preço médio pelo método da Receita: compras ponderadas, venda não altera o PM) + `position_adjustments`. Recalculada por trigger/serviço a cada mudança |
@@ -679,7 +679,7 @@ O site não custodia, não intermedeia, não converte criptoativos. Registrar is
 ## 9. Performance, SEO e conteúdo
 
 - Landing 100% estática (SSG), imagens em AVIF/WebP com `next/image`, fontes com `font-display: swap` e subset latin. Alvos: LCP < 2,0 s no 4G, CLS < 0,05, JS inicial **≤ 170 kB gzip** na landing e **≤ 250 kB** nas páginas de ativo (gráfico carregado sob demanda). Lighthouse ≥ 95 em tudo. *(Revisado em 21/09/2026: o alvo original de 90 kB era inatingível — o runtime do Next 16 + React 19 sozinho, sem código nosso, transfere ~150 kB gzip; o código próprio da landing são ~4 kB. O orçamento é verificado no CI pelo `@lhci/cli`.)*
-- **Páginas de ativo são o motor de SEO** (milhares de URLs). ISR com revalidação disparada pelo job `revalidate_pages` após cada carga; `sitemap` segmentado por classe (`/sitemap/acoes.xml`, `/sitemap/fiis.xml`, …) com `lastmod`; título padronizado ("PETR4 — cotação, dividendos e indicadores | Alpherion Finance"), `description` gerada a partir dos dados (sem IA), canônica em maiúsculas, JSON-LD (`Organization` na home, `Corporation` na página da empresa, `Dataset` opcional nos históricos, `VideoObject` em `/videos`, `BreadcrumbList`), links internos (setor, comparador, glossário).
+- **Páginas de ativo são o motor de SEO** (milhares de URLs). ISR com revalidação disparada pelo job `revalidate_pages` após cada carga; `sitemap` segmentado por classe (`/sitemaps/acoes.xml`, `/sitemaps/fiis.xml`, …) com `lastmod`; título padronizado ("PETR4 — cotação, dividendos e indicadores | Alpherion Finance"), `description` gerada a partir dos dados (sem IA), canônica em maiúsculas, JSON-LD (`Organization` na home, `Corporation` na página da empresa, `Dataset` opcional nos históricos, `VideoObject` em `/videos`, `BreadcrumbList`), links internos (setor, comparador, glossário).
 - `lang="pt-BR"`, `metadata` por página, Open Graph com imagem gerada (`next/og` funciona self-hosted) no estilo da thumbnail (navy + uma palavra dourada; nas páginas de ativo, o ticker em dourado + cotação), `robots.txt` (app: `Disallow: /`; screener com parâmetros: `noindex` para evitar explosão de URLs).
 - `/leitura` como arquivo semanal: título no padrão do canal, resumo, os números, embed do vídeo. Publicado no mesmo dia do vídeo.
 - Nenhum conteúdo gerado por IA é publicado no site público sem revisão humana (regra editorial + regulatória). Descrições e textos das páginas de ativo são templates com dados, não texto gerado.

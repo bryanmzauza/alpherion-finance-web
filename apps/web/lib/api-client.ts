@@ -39,3 +39,20 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   }
   return (await res.json()) as T;
 }
+
+/**
+ * Envio de arquivos (multipart) — só para a prévia de importação. O arquivo passa pela
+ * memória deste processo e segue direto para a API; não é gravado nem logado.
+ */
+export async function apiUpload<T>(path: string, files: { name: string; data: Blob }[]): Promise<T> {
+  const form = new FormData();
+  for (const file of files) form.append("files", file.data, file.name);
+  const res = await fetch(`${env.API_URL}${path}`, {
+    method: "POST",
+    headers: { Accept: "application/json", Authorization: `Bearer ${env.API_SERVICE_TOKEN_WEB}` },
+    body: form,
+    cache: "no-store",
+  });
+  if (!res.ok) throw new ApiError(res.status, path);
+  return (await res.json()) as T;
+}

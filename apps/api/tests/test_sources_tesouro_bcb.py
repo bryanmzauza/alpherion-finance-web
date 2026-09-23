@@ -124,6 +124,21 @@ def test_bcb_http_de_erro() -> None:
         bcb.fetch("cdi", http=_bcb_client([], status=500))
 
 
+@pytest.mark.parametrize(
+    ("nome", "esperado"),
+    [
+        ("Tesouro IGPM+ com Juros Semestrais", "igpm"),
+        ("Tesouro IPCA+ com Juros Semestrais", "ipca"),
+        ("Tesouro Selic", "selic"),
+        ("Tesouro Educa+", "educa_mais"),
+        ("Tesouro Qualquer Coisa Nova", "outro"),
+    ],
+)
+def test_indexador_pelo_nome_do_titulo(nome: str, esperado: str) -> None:
+    """O IGP-M caía em "selic" porque nome desconhecido virava Selic em silêncio."""
+    assert tesouro.detect_index_type(nome) == esperado
+
+
 def test_serie_diaria_vai_em_janelas_de_ate_dez_anos() -> None:
     """Desde 2025 o SGS responde 406 a série diária sem data ou com mais de 10 anos."""
     pedidos: list[httpx.QueryParams] = []

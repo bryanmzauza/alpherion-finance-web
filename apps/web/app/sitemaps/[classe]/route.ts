@@ -5,8 +5,12 @@ import { AGENDA_SITEMAP_WEEKS, EXTRA_SITEMAPS } from "@/lib/sitemaps";
 import { isoWeek, shiftWeek, todayIso, weekPath } from "@/lib/agenda";
 import { pathFor } from "@/components/market/ticker-link";
 
-// Sitemaps **segmentados** (§9): `/sitemap/acoes.xml`, `/sitemap/fiis.xml`…, e desde a
-// Etapa 4 `/sitemap/setores.xml` e `/sitemap/agenda.xml`.
+// Sitemaps **segmentados** (§9): `/sitemaps/acoes.xml`, `/sitemaps/fiis.xml`…, e desde a
+// Etapa 4 `/sitemaps/setores.xml` e `/sitemaps/agenda.xml`.
+//
+// `/sitemaps/` e não `/sitemap/`: o `app/sitemap.ts` vira em dev a rota dinâmica
+// `/sitemap/[__metadata_id__]`, e duas rotas dinâmicas no mesmo segmento derrubam o
+// `next dev` inteiro ("different slug names for the same dynamic path").
 //
 // São milhares de URLs somadas. Um sitemap único passaria do limite de 50 mil entradas
 // e, pior, faria o Search Console reportar erros de cobertura sem dizer de qual parte.

@@ -6,15 +6,15 @@
 
 ## Histórico do plano
 
-| Versão | Data       | Mudança                                                                                                                                                             |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.0     | 19/09/2026 | Plano inicial a partir do site.md. Decisões: monorepo, SemVer com tags por marco, Better Auth. Auth antecipada para o início do Bloco 2 (a carteira exige sessão) |
-| 1.0     | 19/09/2026 | Nota (sem mudança de escopo): Etapa 1 entregue com Next.js 16 (site.md §3.4 diz "15+"); texto da etapa ajustado                                                    |
-| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): a imagem OG da página do ativo sai **sem cotação**, ao contrário do que a §3.5 previa. Redes sociais cacheiam a imagem por dias e a reprocessam quando querem; um preço ali vira número velho sem data, num lugar onde não cabe `SourceBadge` nem "—" com motivo. Ticker e nome da empresa não envelhecem |
-| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): `market_events` entregue como **tabela** e não como view materializada (site.md §4.3). Motivo: a agenda macro vem de um arquivo versionado, que uma view não alcança; e o rebuild por janela do job seria impossível com `REFRESH MATERIALIZED VIEW`, que refaz a agenda inteira |
-| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): Etapa 3.2 — fontes da CVM entregues (cadastro, DFP/ITR, FCA, informes de FII, IPE). O leitor do FRE (free float) fica para a entrega dos indicadores, que é onde o número é usado; até lá `company_facts.free_float` fica `null` e a página mostra "—" |
-| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): Etapa 2.6 entregue — compose de produção, nginx, scripts de operação, `deploy.yml` e runbook de deploy. Falta só a parte manual (domínio, Cloudflare, VPS, e-mail) |
-| 2.0     | 21/09/2026 | Nota (sem mudança de escopo): Etapa 2.4 entregue com CSP sem nonce no site público e orçamento de JS de 170 kB gzip (site.md §7.3 e §9 revisados com a justificativa) |
+| Versão | Data       | Mudança                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | 19/09/2026 | Plano inicial a partir do site.md. Decisões: monorepo, SemVer com tags por marco, Better Auth. Auth antecipada para o início do Bloco 2 (a carteira exige sessão)                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 1.0     | 19/09/2026 | Nota (sem mudança de escopo): Etapa 1 entregue com Next.js 16 (site.md §3.4 diz "15+"); texto da etapa ajustado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): a imagem OG da página do ativo sai**sem cotação**, ao contrário do que a §3.5 previa. Redes sociais cacheiam a imagem por dias e a reprocessam quando querem; um preço ali vira número velho sem data, num lugar onde não cabe `SourceBadge` nem "—" com motivo. Ticker e nome da empresa não envelhecem                                                                                                                                                                                                                                                                                |
+| 2.0     | 22/09/2026 | Nota (sem mudança de escopo):`market_events` entregue como **tabela** e não como view materializada (site.md §4.3). Motivo: a agenda macro vem de um arquivo versionado, que uma view não alcança; e o rebuild por janela do job seria impossível com `REFRESH MATERIALIZED VIEW`, que refaz a agenda inteira                                                                                                                                                                                                                                                                                                            |
+| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): Etapa 3.2 — fontes da CVM entregues (cadastro, DFP/ITR, FCA, informes de FII, IPE). O leitor do FRE (free float) fica para a entrega dos indicadores, que é onde o número é usado; até lá`company_facts.free_float` fica `null` e a página mostra "—"                                                                                                                                                                                                                                                                                                                                         |
+| 2.0     | 22/09/2026 | Nota (sem mudança de escopo): Etapa 2.6 entregue — compose de produção, nginx, scripts de operação,`deploy.yml` e runbook de deploy. Falta só a parte manual (domínio, Cloudflare, VPS, e-mail)                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 2.0     | 21/09/2026 | Nota (sem mudança de escopo): Etapa 2.4 entregue com CSP sem nonce no site público e orçamento de JS de 170 kB gzip (site.md §7.3 e §9 revisados com a justificativa)                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | 2.0     | 20/09/2026 | **Paridade funcional com o Status Invest** ([ADR-018](adr/ADR-018-paridade-status-invest.md)). v1.0 adiado de 25/09 para **09/10/2026**. Entram no v1.0: portal de mercado (header com faixa e busca global, `/mercado` Hoje/Eventos, `/agenda`, `/setores`, `/busca`), ETFs, BDRs, índices com composição, comunicados CVM. v1.0 dividido em quatro blocos (`v0.2.0` → `v0.4.0` → `v1.0.0`). v1.x reordenado (11 entregas) com calendário da carteira, favoritos, rentabilidade TWR, alertas e fundos de investimento. IR na Fase 1; internacional na Fase 2 (ADR-019 pendente). Etapas 0–2 inalteradas |
 
 ## Como este plano é mantido
@@ -26,25 +26,25 @@
 
 ## Convenções de versionamento
 
-| Item           | Regra                                                                                                                                                                                                                                         |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Versão        | SemVer.`web` e `api` sempre com a **mesma tag** (site.md §10). `engine_version` e `prompt_version` são versionados à parte dentro da API e gravados em cada análise                                                         |
+| Item           | Regra                                                                                                                                                                                                                                                                                                                             |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Versão        | SemVer.`web` e `api` sempre com a **mesma tag** (site.md §10). `engine_version` e `prompt_version` são versionados à parte dentro da API e gravados em cada análise                                                                                                                                             |
 | Tags por marco | `v0.0.1` bootstrap · `v0.1.0` Fase 0 no ar · `v0.2.0` Bloco 1 (pipeline + páginas de ativo) · `v0.3.0` Bloco 2 (portal de mercado) · `v0.4.0` Bloco 3 (carteira/B3) · `v1.0.0` app aberto · `v1.1.0+` entregas do v1.x · `v2.0.0` Fase 1 (B3 oficial, IR) · `v3.0.0` Fase 2 (pagamento, internacional) |
-| Branches       | `main` sempre deployável. Uma branch curta por item (`feat/landing-hero`, `feat/api-cotahist`). Squash na `main`. Depois da `v0.1.0`, nunca commitar direto na `main`                                                            |
-| Commits        | Conventional Commits em pt-BR:`feat:`, `fix:`, `docs:`, `chore:`, `infra:`, `data:`, `test:`. Escopo opcional: `feat(web):`, `feat(api):`                                                                                   |
-| CHANGELOG      | [CHANGELOG.md](../CHANGELOG.md) no formato Keep a Changelog; `[Unreleased]` acumula entre tags e vira a seção da tag no fechamento                                                                                                         |
-| Deploy         | Só por tag (`deploy.yml` dispara em `v*`). Migrations aditivas na tag; destrutivas em tag separada, após deploy                                                                                                                         |
+| Branches       | `main` sempre deployável. Uma branch curta por item (`feat/landing-hero`, `feat/api-cotahist`). Squash na `main`. Depois da `v0.1.0`, nunca commitar direto na `main`                                                                                                                                                |
+| Commits        | Conventional Commits em pt-BR:`feat:`, `fix:`, `docs:`, `chore:`, `infra:`, `data:`, `test:`. Escopo opcional: `feat(web):`, `feat(api):`                                                                                                                                                                       |
+| CHANGELOG      | [CHANGELOG.md](../CHANGELOG.md) no formato Keep a Changelog; `[Unreleased]` acumula entre tags e vira a seção da tag no fechamento                                                                                                                                                                                             |
+| Deploy         | Só por tag (`deploy.yml` dispara em `v*`). Migrations aditivas na tag; destrutivas em tag separada, após deploy                                                                                                                                                                                                             |
 
 ## Calendário (metas)
 
-| Data       | Marco                                                                | Tag        |
-| ---------- | -------------------------------------------------------------------- | ---------- |
-| 21/09/2026 | Fase 0 no ar; **vídeo 1** publicado                                  | `v0.1.0`   |
-| 28/09/2026 | Pipeline de dados + páginas de ativo de todas as classes             | `v0.2.0`   |
-| 02/10/2026 | Portal de mercado (header, `/mercado`, `/agenda`, setores); **vídeo 2** demonstra o portal e o raio-x | `v0.3.0`   |
-| 06/10/2026 | Auth, carteira, importação B3                                         | `v0.4.0`   |
-| 09/10/2026 | Análise por IA, conta, segurança; **vídeo 3** abre o app             | `v1.0.0`   |
-| semanas 4–12 | Onze entregas do v1.x, uma tag cada                                | `v1.1.0`…`v1.11.0` |
+| Data          | Marco                                                                                                           | Tag                     |
+| ------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| 21/09/2026    | Fase 0 no ar;**vídeo 1** publicado                                                                       | `v0.1.0`              |
+| 28/09/2026    | Pipeline de dados + páginas de ativo de todas as classes                                                       | `v0.2.0`              |
+| 02/10/2026    | Portal de mercado (header,`/mercado`, `/agenda`, setores); **vídeo 2** demonstra o portal e o raio-x | `v0.3.0`              |
+| 06/10/2026    | Auth, carteira, importação B3                                                                                 | `v0.4.0`              |
+| 09/10/2026    | Análise por IA, conta, segurança;**vídeo 3** abre o app                                                | `v1.0.0`              |
+| semanas 4–12 | Onze entregas do v1.x, uma tag cada                                                                             | `v1.1.0`…`v1.11.0` |
 
 ---
 
@@ -232,30 +232,38 @@ O que o visitante do Status Invest espera ao abrir o site: faixa de índices, bu
 
 ### 5.0 Auth (antecipada: a carteira exige sessão)
 
-- [ ] Better Auth + adapter Drizzle (`users`, `sessions`, `accounts`, `verification_tokens`); magic link (uso único, 15 min, hash) via SMTP + Google OAuth (PKCE); cookie `HttpOnly Secure SameSite=Lax`, 30 dias sliding
-- [ ] `/entrar` com checkbox Termos+Privacidade **não pré-marcado** gravando `consents` com a versão do MDX · `/entrar/verificar`
-- [ ] Middleware em `(app)/`; `/` do app redireciona conforme existência de carteira; redirects `/entrar`, `/cadastro`, `/carteira` do domínio público → app
-- [ ] `audit_log` append-only (GRANT sem UPDATE/DELETE) com `login`/`logout`
+- [X] Better Auth + adapter Drizzle (`users`, `sessions`, `accounts`, `verification_tokens`); magic link (uso único, 15 min, hash) via SMTP + Google OAuth (PKCE); cookie `HttpOnly Secure SameSite=Lax`, 30 dias sliding
+- [X] `/entrar` com checkbox Termos+Privacidade **não pré-marcado** gravando `consents` com a versão do MDX · `/entrar/verificar`
+- [X] Middleware em `(app)/`; `/` do app redireciona conforme existência de carteira; redirects `/entrar`, `/cadastro`, `/carteira` do domínio público → app
+- [X] `audit_log` append-only (GRANT sem UPDATE/DELETE) com `login`/`logout`
 
 ### 5.1 Schema `app` carteira (Drizzle, migration aditiva)
 
-- [ ] `portfolios`, `transactions`, `income_events`, `position_adjustments`, `import_batches`, `assets` (com `factor_map` vindo do `FATORES` de `raio-x-carteira.py` + setor B3 por padrão; `asset_class` cobre `etf_br` e `bdr` desde já)
-- [ ] `lib/crypto.ts` AES-256-GCM com `key_version` para as colunas cifradas do §7.4
-- [ ] `lib/positions.ts`: derivação em memória (PM pelo método da Receita + ajustes)
+- [X] `portfolios`, `transactions`, `income_events`, `position_adjustments`, `import_batches`, `assets` (com `factor_map` vindo do `FATORES` de `raio-x-carteira.py` + setor B3 por padrão; `asset_class` cobre `etf_br` e `bdr` desde já)
+- [X] `lib/crypto.ts` AES-256-GCM com `key_version` para as colunas cifradas do §7.4
+- [X] `lib/positions.ts`: derivação em memória (PM pelo método da Receita + ajustes)
 
 ### 5.2 Importadores na API
 
-- [ ] `importers/b3/posicao.py`, `negociacao.py`, `proventos.py`, `importers/csv.py`: openpyxl `read_only`, sem macros, limites de linhas/células/tamanho descomprimido, checagem de conteúdo, **descarte de CPF/nome antes de qualquer log**, `external_key` = hash (ativo, data, tipo, qtd, preço)
-- [ ] Fixtures anonimizadas em `tests/fixtures/b3/` (incluindo linhas de ETF e BDR)
-- [ ] `POST /v1/imports/b3/preview`, `POST /v1/imports/csv/preview`, `POST /v1/portfolios/valuation`
+- [X] `importers/b3/posicao.py`, `negociacao.py`, `proventos.py`, `importers/csv.py`: openpyxl `read_only`, sem macros, limites de linhas/células/tamanho descomprimido, checagem de conteúdo, **descarte de CPF/nome antes de qualquer log**, `external_key` = hash (ativo, data, tipo, qtd, preço)
+- [X] Fixtures anonimizadas em `tests/fixtures/b3/` (incluindo linhas de ETF e BDR)
+- [X] `POST /v1/imports/b3/preview`, `POST /v1/imports/csv/preview`, `POST /v1/portfolios/valuation`
 
 ### 5.3 Telas (`app/(app)/carteira/`)
 
-- [ ] `/carteira/nova` (2 passos) · `/carteira/importar` (CSV; `public/csv-modelo.csv`) · `/carteira/importar/b3` (passo a passo com prints; aviso de descarte de CPF/nome **antes** do upload; 1–3 arquivos ≤ 5 MB; prévia; avisos por linha; dedupe por hash de arquivo e `external_key`)
-- [ ] `/carteira` (PM, atual, resultado, peso; **Analisar** desabilitado até a Etapa 6) · `/carteira/movimentacoes` · `/carteira/proventos` (yield on cost como fato)
-- [ ] Busca de ativo no app reaproveita `GlobalSearch` (mesmo componente, mesma API)
-- [ ] Route handlers `app/api/portfolio/*`, `app/api/imports/*` filtrando **sempre** por `user_id` da sessão
-- [ ] Evento Umami `b3_import`
+- [X] `/carteira/nova` (2 passos) · `/carteira/importar` (CSV; `public/csv-modelo.csv`) · `/carteira/importar/b3` (passo a passo com prints; aviso de descarte de CPF/nome **antes** do upload; 1–3 arquivos ≤ 5 MB; prévia; avisos por linha; dedupe por hash de arquivo e `external_key`)
+- [X] `/carteira` (PM, atual, resultado, peso; **Analisar** desabilitado até a Etapa 6) · `/carteira/movimentacoes` · `/carteira/proventos` (yield on cost como fato)
+- [X] Busca de ativo no app reaproveita `GlobalSearch` (mesmo componente, mesma API)
+- [X] Route handlers `app/api/portfolio/*`, `app/api/imports/*` filtrando **sempre** por `user_id` da sessão
+- [X] Evento Umami `b3_import`
+
+> **Nota (23/09/2026), entrega da Etapa 5** — desvios conscientes:
+>
+> - `external_key` é um **HMAC** calculado no `web` (chave derivada da de cifra), não um hash feito pelo importador: hash simples de (ativo, data, tipo, qtd, preço) seria reversível por força bruta. A API devolve a prévia com a **ocorrência** de cada linha idêntica no arquivo, que entra na chave a partir da segunda.
+> - Nomes: `importers/b3/proventos.py` lê o extrato de **movimentação** e o relatório de proventos; o CSV genérico é `importers/generic_csv.py` (`csv.py` sombrearia o módulo `csv`).
+> - O passo a passo da importação é textual; os prints entram quando houver capturas reais (sem dado pessoal).
+> - O botão **Analisar** não foi colocado desabilitado: a regra de produto proíbe botão de recurso que não existe. Entra na Etapa 6, já funcionando.
+> - Parsers construídos pelo layout público conhecido da Área do Investidor. **Antes da `v0.4.0`**: validar com os três arquivos reais (ajustar apelidos de cabeçalho em `importers/b3/*.py`, não as fixtures) e testar o Google com credenciais reais — é o que falta do "Pronto quando".
 
 **Pronto quando:** usuário real entra por magic link, importa os 3 arquivos da Área do Investidor, vê posições com PM correto (fixture conhecida); reenvio não duplica; teste IDOR passa. → **tag `v0.4.0`**.
 
@@ -317,8 +325,8 @@ Uma tag por entrega, nesta ordem (alternando SEO/dado e retenção/carteira). Ca
 7. [ ] **`/comparar`** + `GET /v1/compare` (ações, FIIs, ETFs, BDRs; fundos após o item 9) → `v1.7.0`
 8. [ ] **Informes de FII** (vacância, imóveis) + `GET /v1/fiis/{ticker}/reports` → `v1.8.0`
 9. [ ] **Fundos de investimento (CVM)**: `funds`, `fund_daily` (particionada), sources `cvm_funds.py`, jobs `cvm_funds`/`cvm_funds_daily`, `GET /v1/funds*`, `/fundos`, `/fundos/[slug]`, busca global e `/v1/assets/search` com fundos, sitemap → `v1.9.0`
-10. [ ] **`/leitura`**, `/leitura/[slug]` (MDX semanal) e `/manifesto` → `v1.10.0`
-11. [ ] **`analysis_feedback`** → `v1.11.0`
+1. [ ] **`/leitura`**, `/leitura/[slug]` (MDX semanal) e `/manifesto` → `v1.10.0`
+1. [ ] **`analysis_feedback`** → `v1.11.0`
 
 ## Etapas seguintes (entram como módulos pelo §14 do site.md)
 
@@ -330,16 +338,16 @@ Uma tag por entrega, nesta ordem (alternando SEO/dado e retenção/carteira). Ca
 
 ## Riscos assumidos
 
-| Risco                                                        | Como o plano lida                                                                                                                                       |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Prazo: Fase 0 em 1 dia e v1.0 em 19 dias, uma pessoa          | A ordem dos blocos não muda; `v0.1.0` sai primeiro de qualquer forma; `v0.2.0` e `v0.3.0` são publicáveis sozinhos (o portal já é produto antes do app) |
+| Risco                                                                                                                                 | Como o plano lida                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prazo: Fase 0 em 1 dia e v1.0 em 19 dias, uma pessoa                                                                                  | A ordem dos blocos não muda;`v0.1.0` sai primeiro de qualquer forma; `v0.2.0` e `v0.3.0` são publicáveis sozinhos (o portal já é produto antes do app)                                                                                                 |
 | Termos da B3 exigem licença para cotações e carteiras teóricas (verificado em 21/09 — ADR-017); CoinGecko Demo não é comercial | Preço e cripto atrás de feature flag até a licença; páginas publicáveis sem preço; consulta à B3 enviada; custo fixo previsto (B3 ≥ R$ 320/mês; cripto ≈ US$ 129/mês). O canal de acesso (arquivos, UP2DATA, distribuidor) troca sem mudar o schema |
-| Endpoints não documentados da B3 (listagem, eventos, carteira teórica) mudam sem aviso | Fallback por fonte (CVM para cadastro; última carteira com data para índices); alerta de frescor cobre 2 dias seguidos de falha |
-| Volume do IPE e (v1.x) dos informes de fundos                 | Carga incremental por data; partição por ano; `--sample` limita a 90 dias em dev                                                                        |
-| Header dinâmico (faixa + busca) pode quebrar a landing estática ou o zero cookie | `MarketStrip` é server component com cache de 5 min e fallback "—"; busca carrega no foco; testes de zero cookie e de orçamento de JS no CI |
-| Rankings e presets viram "recomendação implícita"            | Métrica sempre no título; padrão neutro; lint de conteúdo no CI; ADR-018 lista o que nunca entra                                                        |
-| Golden test do engine: números do vídeo 02 vieram do Yahoo | Documentar tolerância em vez de forçar igualdade                                                                                                      |
-| Backfill em produção leva horas e dezenas de GB            | Volume`market` provisionado na Etapa 2.6, não na 3                                                                                                   |
-| IR (Fase 1): regras mudam por ano e por classe               | `tax_rules_version` gravado em cada apuração; disclaimer próprio; só com histórico completo de movimentações                                             |
-| Internacional (Fase 2): custo mensal antes de receita        | Só com contrato e paywall; ADR-019 registra provedor, custo e direito de exibição                                                                       |
-| Ferramental local: sem`pnpm` e `gh`                      | `corepack enable` na Etapa 1; `gh` opcional                                                                                                         |
+| Endpoints não documentados da B3 (listagem, eventos, carteira teórica) mudam sem aviso                                              | Fallback por fonte (CVM para cadastro; última carteira com data para índices); alerta de frescor cobre 2 dias seguidos de falha                                                                                                                                 |
+| Volume do IPE e (v1.x) dos informes de fundos                                                                                         | Carga incremental por data; partição por ano;`--sample` limita a 90 dias em dev                                                                                                                                                                               |
+| Header dinâmico (faixa + busca) pode quebrar a landing estática ou o zero cookie                                                    | `MarketStrip` é server component com cache de 5 min e fallback "—"; busca carrega no foco; testes de zero cookie e de orçamento de JS no CI                                                                                                                  |
+| Rankings e presets viram "recomendação implícita"                                                                                  | Métrica sempre no título; padrão neutro; lint de conteúdo no CI; ADR-018 lista o que nunca entra                                                                                                                                                              |
+| Golden test do engine: números do vídeo 02 vieram do Yahoo                                                                          | Documentar tolerância em vez de forçar igualdade                                                                                                                                                                                                                |
+| Backfill em produção leva horas e dezenas de GB                                                                                     | Volume`market` provisionado na Etapa 2.6, não na 3                                                                                                                                                                                                             |
+| IR (Fase 1): regras mudam por ano e por classe                                                                                        | `tax_rules_version` gravado em cada apuração; disclaimer próprio; só com histórico completo de movimentações                                                                                                                                             |
+| Internacional (Fase 2): custo mensal antes de receita                                                                                 | Só com contrato e paywall; ADR-019 registra provedor, custo e direito de exibição                                                                                                                                                                              |
+| Ferramental local: sem`pnpm` e `gh`                                                                                               | `corepack enable` na Etapa 1; `gh` opcional                                                                                                                                                                                                                   |

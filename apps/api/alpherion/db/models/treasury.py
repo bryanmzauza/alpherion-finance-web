@@ -14,7 +14,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from alpherion.db.base import Base
 from alpherion.db.types import Price, Ratio, Slug, UpdatedAt
 
-INDEX_TYPES = ("selic", "ipca", "prefixado", "renda_mais", "educa_mais")
+INDEX_TYPES = ("selic", "ipca", "prefixado", "igpm", "renda_mais", "educa_mais", "outro")
 
 
 class TreasuryBond(Base):

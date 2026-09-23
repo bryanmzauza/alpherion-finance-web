@@ -40,6 +40,8 @@ INDEX_TYPES: Final[dict[str, str]] = {
     "TESOURO SELIC": "selic",
     "TESOURO IPCA": "ipca",
     "TESOURO PREFIXADO": "prefixado",
+    # Títulos antigos (a série histórica vai até 2005): sem esta regra caíam em "selic".
+    "TESOURO IGPM": "igpm",
     "TESOURO RENDA": "renda_mais",
     "TESOURO EDUCA": "educa_mais",
 }
@@ -82,7 +84,11 @@ def detect_index_type(name: str) -> str:
     for prefix, index_type in INDEX_TYPES.items():
         if upper.startswith(prefix):
             return index_type
-    return "prefixado" if "PREFIXADO" in upper else "selic"
+    if "PREFIXADO" in upper:
+        return "prefixado"
+    # Nome novo que ninguém mapeou: melhor "outro" com aviso do que chutar um indexador.
+    logger.warning("indexador não reconhecido no nome do título: %r", name)
+    return "outro"
 
 
 def has_coupon(name: str) -> bool:

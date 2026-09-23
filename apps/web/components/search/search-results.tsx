@@ -20,6 +20,8 @@ type Props = {
   inputRef: RefObject<HTMLInputElement | null>;
   listId: string;
   onStateChange: (state: ComboboxState) => void;
+  /** Modo "escolher ativo": entrega a opção em vez de navegar (ver `SearchBox`). */
+  onPick?: (hit: AssetHit) => void;
 };
 
 type Status = "idle" | "loading" | "ready" | "error" | "limited";
@@ -30,7 +32,7 @@ const DEBOUNCE_MS = 180;
 /** Resultados já buscados nesta visita — voltar uma letra não refaz a requisição. */
 const cache = new Map<string, AssetSearchResult>();
 
-export default function SearchResults({ query, inputRef, listId, onStateChange }: Props) {
+export default function SearchResults({ query, inputRef, listId, onStateChange, onPick }: Props) {
   const router = useRouter();
   const term = query.trim();
   const key = term.toLowerCase();
@@ -50,7 +52,15 @@ export default function SearchResults({ query, inputRef, listId, onStateChange }
   const cached = searchable ? cache.get(key) : undefined;
   const status: Status = !searchable ? "idle" : cached ? "ready" : fetched.key === key ? fetched.status : "loading";
   // Enquanto a resposta nova não chega, a lista anterior continua na tela (sem piscar).
-  const result = !searchable ? null : (cached ?? fetched.result);
+  const fullResult = !searchable ? null : (cached ?? fetched.result);
+  // No modo "escolher ativo", índice não é algo que se tenha na carteira.
+  const result = useMemo(
+    () =>
+      fullResult && onPick
+        ? { ...fullResult, groups: fullResult.groups.filter((g) => g.asset_class !== "index") }
+        : fullResult,
+    [fullResult, onPick],
+  );
   const active = cursor.key === key ? cursor.index : -1;
   const open = focused && searchable && closedFor !== key;
 
@@ -59,11 +69,11 @@ export default function SearchResults({ query, inputRef, listId, onStateChange }
     const hits = result?.groups.flatMap((group) => group.items) ?? [];
     return [
       ...hits.map((hit) => ({ kind: "hit" as const, hit, href: hitHref(hit) })),
-      ...(searchable
+      ...(searchable && !onPick
         ? [{ kind: "all" as const, hit: null, href: `/busca?q=${encodeURIComponent(term)}` }]
         : []),
     ];
-  }, [result, searchable, term]);
+  }, [result, searchable, term, onPick]);
 
   const optionId = (index: number) => `${listId}-${index}`;
   const setActive = (index: number) => setCursor({ key, index });
@@ -158,6 +168,10 @@ export default function SearchResults({ query, inputRef, listId, onStateChange }
     });
     setClosedFor(key);
     inputRef.current?.blur();
+    if (onPick && option.kind === "hit") {
+      onPick(option.hit);
+      return;
+    }
     router.push(option.href);
   }
 
@@ -215,7 +229,7 @@ export default function SearchResults({ query, inputRef, listId, onStateChange }
             </div>
           );
         })}
-        {term.length >= MIN_QUERY ? (
+        {term.length >= MIN_QUERY && !onPick ? (
           <div
             id={optionId(options.length - 1)}
             role="option"

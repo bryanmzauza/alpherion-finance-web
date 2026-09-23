@@ -4,8 +4,8 @@ import { MARKET_LINKS } from "@/lib/market-classes";
 import { siteUrl } from "@/lib/seo";
 
 // Sitemap das páginas fixas. As páginas de ativo ficam nos sitemaps por classe
-// (/sitemap/acoes.xml etc.), os setores em /sitemap/setores.xml e as semanas da agenda
-// em /sitemap/agenda.xml — todos anunciados no robots.txt. /lista/* e /design ficam
+// (/sitemaps/acoes.xml etc.), os setores em /sitemaps/setores.xml e as semanas da agenda
+// em /sitemaps/agenda.xml — todos anunciados no robots.txt. /lista/* e /design ficam
 // de fora (robots.ts).
 const BUILT_AT = new Date();
 

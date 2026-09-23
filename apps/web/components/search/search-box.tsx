@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useId, useRef, useState } from "react";
 import { MAX_QUERY } from "@/lib/asset-search";
+import type { AssetHit } from "@/lib/market";
 import { track } from "@/lib/umami";
 import { cn } from "@/lib/cn";
 
@@ -25,9 +26,16 @@ type Props = {
   size?: "sm" | "lg";
   className?: string;
   defaultValue?: string;
+  /**
+   * Modo "escolher ativo" (lançamento manual da carteira): a opção escolhida é entregue
+   * aqui em vez de navegar; índices e o "ver todos" somem, e Enter não envia para /busca.
+   */
+  onPick?: (hit: AssetHit) => void;
+  label?: string;
+  placeholder?: string;
 };
 
-export function SearchBox({ size = "sm", className, defaultValue = "" }: Props) {
+export function SearchBox({ size = "sm", className, defaultValue = "", onPick, label, placeholder }: Props) {
   const id = useId();
   const inputId = `${id}-q`;
   const listId = `${id}-resultados`;
@@ -52,14 +60,20 @@ export function SearchBox({ size = "sm", className, defaultValue = "" }: Props) 
   }
 
   return (
-    <form action="/busca" method="get" role="search" className={cn("relative", className)}>
-      <label htmlFor={inputId} className="sr-only">
-        Buscar ação, FII, ETF, BDR, índice, título do Tesouro ou cripto
+    <form
+      action="/busca"
+      method="get"
+      role="search"
+      className={cn("relative", className)}
+      onSubmit={onPick ? (event) => event.preventDefault() : undefined}
+    >
+      <label htmlFor={inputId} className={label ? "mb-2 block text-table text-ice-70" : "sr-only"}>
+        {label ?? "Buscar ação, FII, ETF, BDR, índice, título do Tesouro ou cripto"}
       </label>
       <input
         ref={inputRef}
         id={inputId}
-        name="q"
+        name={onPick ? undefined : "q"}
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
@@ -70,7 +84,7 @@ export function SearchBox({ size = "sm", className, defaultValue = "" }: Props) 
         autoCorrect="off"
         spellCheck={false}
         enterKeyHint="search"
-        placeholder={size === "lg" ? "Busque por ticker, empresa, índice ou cripto" : "Buscar ativo"}
+        placeholder={placeholder ?? (size === "lg" ? "Busque por ticker, empresa, índice ou cripto" : "Buscar ativo")}
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={combobox.open}
@@ -88,6 +102,14 @@ export function SearchBox({ size = "sm", className, defaultValue = "" }: Props) 
             inputRef={inputRef}
             listId={listId}
             onStateChange={setCombobox}
+            onPick={
+              onPick
+                ? (hit) => {
+                    setQuery(hit.type === "treasury" || hit.type === "crypto" ? hit.name : hit.code);
+                    onPick(hit);
+                  }
+                : undefined
+            }
           />
         </Suspense>
       ) : null}

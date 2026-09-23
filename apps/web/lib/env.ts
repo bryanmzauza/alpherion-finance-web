@@ -25,6 +25,26 @@ const schema = z.object({
   // Umami (analytics sem cookie). Sem eles, o script não é injetado.
   UMAMI_WEBSITE_ID: z.string().optional(),
   UMAMI_SCRIPT_URL: z.url().optional(),
+  // Auth (ADR-016). Em produção o segredo é obrigatório (ver `superRefine`).
+  BETTER_AUTH_SECRET: z.string().min(32).optional(),
+  BETTER_AUTH_URL: z.url().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  // E-mail transacional (magic link). Em dev, o Mailpit do compose.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  // Cifra das colunas financeiras (§7.4): AES-256-GCM, chave de 32 bytes em base64.
+  APP_ENCRYPTION_KEY_V1: z.string().optional(),
+  APP_ENCRYPTION_KEY_VERSION: z.coerce.number().int().positive().default(1),
+}).superRefine((value, ctx) => {
+  // Em produção, app sem segredo de sessão ou sem chave de cifra não sobe: melhor falhar
+  // no boot do que aceitar login com segredo previsível ou gravar movimentação em claro.
+  if (value.APP_ENV !== "prod") return;
+  for (const name of ["BETTER_AUTH_SECRET", "APP_ENCRYPTION_KEY_V1"] as const) {
+    if (!value[name]) ctx.addIssue({ code: "custom", path: [name], message: "obrigatória em produção" });
+  }
 });
 
 export type Env = z.infer<typeof schema>;

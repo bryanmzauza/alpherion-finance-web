@@ -1,0 +1,6 @@
+data;tipo;ativo;quantidade;preco;taxas;classe
+12/03/2026;compra;PETR4;100;38,52;4,90;acao
+15/03/2026;compra;HGLG11;10;160,00;0;fii
+02/04/2026;compra;Tesouro IPCA+ 2035;0,5;3100,00;;tesouro
+05/04/2026;compra;BTC;0,01;350000,00;;cripto
+20/05/2026;venda;PETR4;30;41,10;4,90;acao

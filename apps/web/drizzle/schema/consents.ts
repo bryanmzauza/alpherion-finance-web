@@ -1,5 +1,6 @@
 import { index, inet, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { app } from "./app";
+import { users } from "./auth";
 
 // Prova de consentimento (site.md §4.1; LGPD art. 8 §2). Sem e-mail em claro: a lista
 // vive no Listmonk; aqui fica só o hash do e-mail para ligar prova ↔ assinante.
@@ -8,7 +9,9 @@ export const consentSource = app.enum("consent_source", ["landing", "app_signup"
 
 export const consents = app.table("consents", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id"), // FK para users entra na Etapa 4.0 (migration aditiva)
+  // Aceite no /entrar é gravado antes de a conta existir (pelo hash do e-mail) e ligado ao
+  // usuário quando ele é criado — ver `lib/auth.ts`.
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
   subscriberEmailHash: text("subscriber_email_hash"),
   kind: consentKind("kind").notNull(),
   documentVersion: text("document_version").notNull(),

@@ -6,6 +6,10 @@ import { env } from "@/lib/env";
 // a borda (Cloudflare) tem o segundo limite.
 
 let client: Redis | null | undefined;
+// Uma conexão só, compartilhada: duas chamadas simultâneas no primeiro uso (o `/entrar`
+// confere IP e e-mail em paralelo) não podem disparar dois `connect()` — a segunda
+// encontraria o cliente "conectando" e, sem fila offline, falharia.
+let connecting: Promise<void> | null = null;
 
 function redis(): Redis | null {
   if (client !== undefined) return client;
@@ -32,7 +36,12 @@ export async function rateLimit(scope: string, id: string, limit: number, window
   if (!r) return { ok: true, remaining: limit };
   const key = `rl:${scope}:${id}`;
   try {
-    if (r.status === "wait") await r.connect();
+    if (r.status === "wait") {
+      connecting ??= r.connect().finally(() => {
+        connecting = null;
+      });
+    }
+    if (connecting) await connecting;
     const count = await r.incr(key);
     if (count === 1) await r.expire(key, windowSeconds);
     return { ok: count <= limit, remaining: Math.max(0, limit - count) };

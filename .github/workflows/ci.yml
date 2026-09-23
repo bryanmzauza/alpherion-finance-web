@@ -32,6 +32,8 @@ jobs:
           APP_ENV: prod
           DATABASE_URL: postgres://ci
           API_SERVICE_TOKEN_WEB: ci-placeholder-token-00000000000000000000
+          BETTER_AUTH_SECRET: ci-placeholder-secret-000000000000000000000
+          APP_ENCRYPTION_KEY_V1: Y2ktcGxhY2Vob2xkZXIta2V5LTAwMDAwMDAwMDAwMDA=
 
   lighthouse:
     name: web (Lighthouse ≥ 95, orçamento de JS)
@@ -51,6 +53,8 @@ jobs:
           SITE_URL: http://localhost:3000
           DATABASE_URL: postgres://ci
           API_SERVICE_TOKEN_WEB: ci-placeholder-token-00000000000000000000
+          BETTER_AUTH_SECRET: ci-placeholder-secret-000000000000000000000
+          APP_ENCRYPTION_KEY_V1: Y2ktcGxhY2Vob2xkZXIta2V5LTAwMDAwMDAwMDAwMDA=
       # apps/web/lighthouserc.json: sobe `pnpm start`, 3 rodadas em /, /raio-x, /acoes e /mercado, mediana ≥ 0,95
       # (performance só avisa: runner é ruidoso) e scripts ≤ 170 kB gzip (site.md §9).
       - run: pnpm --filter web lighthouse
@@ -59,12 +63,48 @@ jobs:
           SITE_URL: http://localhost:3000
           DATABASE_URL: postgres://ci
           API_SERVICE_TOKEN_WEB: ci-placeholder-token-00000000000000000000
+          BETTER_AUTH_SECRET: ci-placeholder-secret-000000000000000000000
+          APP_ENCRYPTION_KEY_V1: Y2ktcGxhY2Vob2xkZXIta2V5LTAwMDAwMDAwMDAwMDA=
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: lighthouse-reports
           path: apps/web/.lighthouseci/reports
           retention-days: 14
+
+  web-db:
+    name: web (integração com Postgres — IDOR e cifra)
+    runs-on: ubuntu-latest
+    needs: web
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: web
+          POSTGRES_PASSWORD: web
+          POSTGRES_DB: alpherion
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U web -d alpherion"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      APP_ENV: dev
+      DATABASE_URL: postgres://web:web@localhost:5432/alpherion?options=-c%20search_path%3Dapp
+      API_SERVICE_TOKEN_WEB: ci-placeholder-token-00000000000000000000
+      # Chave de teste (32 bytes em base64), só para este job.
+      APP_ENCRYPTION_KEY_V1: Y2ktdGVzdGUtY2hhdmUtZGUtMzItYnl0ZXMtLS0tLS0=
+      APP_ENCRYPTION_KEY_VERSION: "1"
+      RUN_DB_TESTS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web db:migrate
+      - run: pnpm --filter web exec vitest run lib/portfolio
 
   e2e:
     name: web (zero cookie e busca, Playwright)
@@ -85,6 +125,8 @@ jobs:
           SITE_URL: http://127.0.0.1:3100
           DATABASE_URL: postgres://ci
           API_SERVICE_TOKEN_WEB: ci-placeholder-token-00000000000000000000
+          BETTER_AUTH_SECRET: ci-placeholder-secret-000000000000000000000
+          APP_ENCRYPTION_KEY_V1: Y2ktcGxhY2Vob2xkZXIta2V5LTAwMDAwMDAwMDAwMDA=
       # Sem API no CI: as páginas saem com "—" e a busca com o aviso de indisponível —
       # exatamente o caso em que um cookie "de fallback" poderia escapar.
       - run: pnpm --filter web e2e
@@ -94,6 +136,8 @@ jobs:
           SITE_URL: http://127.0.0.1:3100
           DATABASE_URL: postgres://ci
           API_SERVICE_TOKEN_WEB: ci-placeholder-token-00000000000000000000
+          BETTER_AUTH_SECRET: ci-placeholder-secret-000000000000000000000
+          APP_ENCRYPTION_KEY_V1: Y2ktcGxhY2Vob2xkZXIta2V5LTAwMDAwMDAwMDAwMDA=
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
     // Google não está indexando.
     sitemap: [
       siteUrl("/sitemap.xml"),
-      ...EXTRA_SITEMAPS.map((slug) => siteUrl(`/sitemap/${slug}.xml`)),
+      ...EXTRA_SITEMAPS.map((slug) => siteUrl(`/sitemaps/${slug}.xml`)),
     ],
   };
 }

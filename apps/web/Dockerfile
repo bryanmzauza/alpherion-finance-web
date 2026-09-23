@@ -19,8 +19,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # SITE_URL entra no build: metadataBase, canônicas, OG e sitemap são resolvidos contra ela.
 ARG SITE_URL=https://alpherion.com.br
 ENV SITE_URL=$SITE_URL
-# Variáveis só para o build passar pela validação de env; em runtime vêm do .env do compose.
-ENV DATABASE_URL=postgres://build APP_ENV=prod API_SERVICE_TOKEN_WEB=build-placeholder-token-0000000000000000
+# Variáveis só para o build passar pela validação de env; em runtime vêm do .env do compose
+# (nenhum segredo real fica gravado em camada da imagem).
+ENV DATABASE_URL=postgres://build APP_ENV=prod \
+    API_SERVICE_TOKEN_WEB=build-placeholder-token-0000000000000000 \
+    BETTER_AUTH_SECRET=build-placeholder-secret-00000000000000000000 \
+    APP_ENCRYPTION_KEY_V1=YnVpbGQtcGxhY2Vob2xkZXIta2V5LTAwMDAwMDAwMDA=
 RUN pnpm --filter web build && pnpm --filter web build:migrator
 
 FROM node:22-slim AS runner
