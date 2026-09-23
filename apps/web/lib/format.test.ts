@@ -3,6 +3,7 @@ import {
   DASH,
   compactCurrency,
   currency,
+  stripValue,
   date,
   direction,
   multiple,
@@ -95,5 +96,18 @@ describe("direção da variação", () => {
   it("sinal decide a cor", () => {
     expect(direction("0.01")).toBe("up");
     expect(direction("-0.01")).toBe("down");
+  });
+});
+
+describe("stripValue", () => {
+  it("formata pela unidade que a API declara", () => {
+    expect(stripValue("142512.37", "pts")).toBe("142.512");
+    expect(stripValue("5.4321", "R$")).toBe("R$ 5,4321");
+    expect(stripValue("10.9", "%")).toBe("10,90%");
+    expect(stripValue("350123.4", "BRL")).toMatch(/^R\$\s350\.123,00$/);
+  });
+
+  it("ausente é traço, nunca zero", () => {
+    expect(stripValue(null, "pts")).toBe("—");
   });
 });

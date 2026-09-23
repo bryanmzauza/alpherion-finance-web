@@ -42,6 +42,7 @@ from alpherion.data.jobs import (
     coingecko_history,
     coingecko_prices,
     cotahist_daily,
+    cvm_company_facts,
     cvm_documents,
     cvm_fii_reports,
     cvm_statements,
@@ -97,6 +98,7 @@ SCHEDULE: Final[tuple[Scheduled, ...]] = (
     # Fundamentos: mudam pouco, arquivos grandes.
     Scheduled("cvm_fii_reports", cvm_fii_reports.run, hour=5, day_of_month=15),
     Scheduled("cvm_statements", cvm_statements.run, hour=4, day_of_month=20),
+    Scheduled("cvm_company_facts", cvm_company_facts.run, hour=4, minute=30, day_of_month=20),
     # Derivados, por último.
     Scheduled("indicators_rebuild", indicators_rebuild.run, hour=22),
     Scheduled("market_events_rebuild", market_events_rebuild.run, hour=22, minute=15),

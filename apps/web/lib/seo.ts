@@ -75,3 +75,25 @@ export function breadcrumbJsonLd(
     })),
   };
 }
+
+// JSON-LD `Event` de cada item da agenda (plano 4.3). O evento não tem lugar físico: é
+// uma data anunciada por uma fonte, e a "localização" é a página onde ela está — o
+// calendário oficial no caso de macro, a página do papel nos demais.
+export function agendaEventsJsonLd(
+  events: { name: string; date: string; description: string | null; url: string }[],
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@graph": events.map((event) => ({
+      "@type": "Event",
+      name: event.name,
+      startDate: event.date,
+      endDate: event.date,
+      eventStatus: "https://schema.org/EventScheduled",
+      eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+      location: { "@type": "VirtualLocation", url: event.url },
+      ...(event.description ? { description: event.description } : {}),
+      inLanguage: "pt-BR",
+    })),
+  };
+}

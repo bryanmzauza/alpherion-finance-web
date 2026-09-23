@@ -1,6 +1,10 @@
 # Dependências locais (site.md §10, ambiente `dev`). web e api rodam fora do compose
 # (`pnpm dev`, `uvicorn --reload`). Portas só em 127.0.0.1.
 #
+# Portas do host numa faixa pouco usada (5xxxx), para não disputar com outros projetos
+# na mesma máquina (5432, 6379, 9000, 8025… são as padrão de todo mundo). Cada uma pode
+# ser trocada no .env; dentro da rede do compose os serviços continuam nas portas padrão.
+#
 #   docker compose --env-file .env -f infra/compose.dev.yml up -d   (da raiz do repo)
 #
 # `--env-file .env` faz a interpolação (${...}) ler o .env da raiz; `env_file` entrega as
@@ -17,7 +21,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?defina POSTGRES_SUPERUSER_PASSWORD no .env}
       POSTGRES_DB: ${POSTGRES_DB:-alpherion}
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
@@ -32,7 +36,7 @@ services:
     image: redis:7-alpine
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?defina REDIS_PASSWORD no .env}", "--appendonly", "yes"]
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-56379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -46,8 +50,8 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "127.0.0.1:8025:8025" # UI
-      - "127.0.0.1:1025:1025" # SMTP
+      - "127.0.0.1:${MAILPIT_UI_PORT:-58025}:8025" # UI
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-51025}:1025" # SMTP
     environment:
       MP_SMTP_AUTH_ACCEPT_ANY: "1"
       MP_SMTP_AUTH_ALLOW_INSECURE: "1"
@@ -58,10 +62,10 @@ services:
     image: listmonk/listmonk:v5.0.3
     command: ["sh", "-c", "./listmonk --install --idempotent --yes --config '' && ./listmonk --config ''"]
     ports:
-      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:${LISTMONK_PORT:-59000}:9000"
     environment:
       LISTMONK_app__address: "0.0.0.0:9000"
-      LISTMONK_app__root_url: "http://127.0.0.1:9000"
+      LISTMONK_app__root_url: "http://127.0.0.1:${LISTMONK_PORT:-59000}"
       LISTMONK_db__host: postgres
       LISTMONK_db__port: "5432"
       LISTMONK_db__user: listmonk
@@ -81,7 +85,7 @@ services:
     image: ghcr.io/umami-software/umami:postgresql-latest
     profiles: ["analytics"]
     ports:
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:${UMAMI_PORT:-53001}:3000"
     environment:
       DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:?defina UMAMI_DB_PASSWORD no .env}@postgres:5432/umami
       APP_SECRET: ${UMAMI_APP_SECRET:?defina UMAMI_APP_SECRET no .env}

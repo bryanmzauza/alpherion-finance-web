@@ -143,7 +143,7 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 - [X] `cotahist_parser.py` (layout posicional oficial, rev. 01 de 13/04/2017: 245 bytes, preços `(11)V99`, `FATCOT` normalizado para preço unitário, filtro de mercado à vista) + `b3_cotahist.py` (download diário/anual, arquivo descartado depois) — fonte licenciada troca só o `b3_cotahist.py` (ADR-017)
 - [X] `b3_listing.py` (ações, units, **ETFs, BDRs**, FIIs; tipo pelo sufixo do ticker, `11` só com a origem do registro) + `b3_events.py` (proventos e eventos; rótulo novo vira `None` com aviso, nunca um chute) + `b3_api.py` (parâmetro em base64, paginação, `B3UnavailableError` para o fallback)
 - [X] `b3_indices.py`: carteira teórica e fechamento dos nove índices; peso em fração, data de referência no dado, carteira vazia é erro explícito (o job mantém a última e a página expõe a data)
-- [X] `cvm.py` (cadastro de cias e de FIIs, DFP/ITR, FCA, informes mensais de FII) + `cvm_statements.py` (formato longo; escala de moeda normalizada, só o exercício corrente, versão mais recente por período). **Falta o FRE** (free float) — vai junto com os indicadores que o usam
+- [X] `cvm.py` (cadastro de cias e de FIIs, DFP/ITR, FCA, informes mensais de FII) + `cvm_statements.py` (formato longo; escala de moeda normalizada, só o exercício corrente, versão mais recente por período). Capital social (quantidade de ações) vem do **FRE**, não do FCA — job `cvm_company_facts` (23/09/2026). **Falta o free float** do FRE — vai junto com os indicadores que o usam
 - [X] `cvm_documents.py` (IPE: metadados + link; incremental por data de entrega; **nunca baixa o documento** — há teste que conta as requisições)
 - [X] `tesouro.py` (CSV do Tesouro Transparente, decimal pt-BR, slug estável por vencimento) e `bcb.py` (códigos SGS documentados num só lugar; HTML do SGS fora do ar não vira série vazia) — **fontes liberadas** (ODbL / dados abertos)
 - [X] `coingecko.py` (só dev até a fonte licenciada — ADR-017; 429 dito com todas as letras, dia sem valor fica sem valor)
@@ -153,7 +153,7 @@ Por que primeiro: é o que os vídeos mostram e o que traz tráfego orgânico. T
 
 ### 3.3 Jobs (idempotentes, lock no Redis, registram `etl_runs`)
 
-- [X] `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `b3_index_composition`, `cvm_companies`, `cvm_statements` (DFP anual), `cvm_fii_reports`, `cvm_documents`, `tesouro_daily`, `bcb_series`, `coingecko_prices`, `coingecko_history`, `adjust_factors`, `indicators_rebuild`, `market_events_rebuild`, `revalidate_pages` — todos sobre `jobs/base.py` (lock no Redis, `etl_runs` no `finally`, trava de licença lida de `data_sources`) e `db/upsert.py`
+- [X] `cotahist_daily`, `b3_listing`, `b3_corporate_actions`, `b3_index_composition`, `cvm_companies`, `cvm_statements` (DFP anual), `cvm_company_facts` (FRE), `cvm_fii_reports`, `cvm_documents`, `tesouro_daily`, `bcb_series`, `coingecko_prices`, `coingecko_history`, `adjust_factors`, `indicators_rebuild`, `market_events_rebuild`, `revalidate_pages` — todos sobre `jobs/base.py` (lock no Redis, `etl_runs` no `finally`, trava de licença lida de `data_sources`) e `db/upsert.py`
 - [X] Agendamento em `data/scheduler.py` (é o `command` do serviço `data` no compose): uma tabela `SCHEDULE` com a ordem do dia — preço → eventos → ajuste → fundamentos → indicadores → revalidação. O cron do host continua possível (cada job é `python -m alpherion.data.jobs.<job>`); num VPS só, o agendador dentro do container evita duplicar configuração
 - [X] `infra/scripts/backfill-market.sh` com `--sample` (20 ações, 10 FIIs, 5 ETFs, 5 BDRs, 3 índices, Tesouro, top 20 cripto, 3 anos, IPE de 90 dias) e `--full`. A ordem das etapas e os perfis ficam em `data/backfill.py` (testável); o script só escolhe onde rodar — container `data` em produção, `.venv` em dev. `--etapa` reexecuta só o que falhou, `--dry-run` lista
 - [X] `docs/runbooks/reprocessar-job.md`
@@ -190,40 +190,40 @@ O que o visitante do Status Invest espera ao abrir o site: faixa de índices, bu
 
 ### 4.1 Header do site público
 
-- [ ] `MarketStrip` (server component; `GET /v1/market/strip` com `revalidate: 300`; "—" quando a API não responde; a landing continua SSG/ISR e estática por 5 min)
-- [ ] `GlobalSearch` (client component carregado **no foco**; `app/api/market/search` com rate limit 30/min/IP → `/v1/assets/search`; teclado e `aria-*` completos; Enter sem seleção → `/busca?q=`)
-- [ ] Menu novo: Ações · FIIs · ETFs · BDRs · Índices · Tesouro · Cripto · Setores · Agenda · Raio-X · Vídeos (mobile: drawer)
-- [ ] Teste: landing continua < 90 kB gzip de JS inicial e **zero cookie** (Playwright/CI verifica `document.cookie === ""` e ausência de `Set-Cookie`)
+- [X] `MarketStrip` (server component; `GET /v1/market/strip` com `revalidate: 300`; "—" quando a API não responde; a landing continua SSG/ISR e estática por 5 min). Zero JS: o motivo do "—" vai em `title` + texto para leitor de tela, não no `Tooltip`. A faixa do header tem os cinco itens do §2.1; CDI e IPCA saem como acumulado composto em 12 meses (`market/accumulated.py`)
+- [X] `GlobalSearch` (client component carregado **no foco**; `app/api/market/search` com rate limit 30/min/IP → `/v1/assets/search`; teclado e `aria-*` completos; Enter sem seleção → `/busca?q=`). Entregue como `SearchBox` (casca com o `<form>` e o `<input>`, funciona sem JS) + `search-results.tsx` (chunk de 2,2 kB gzip baixado no foco). `/v1/assets/search` passou a agrupar por classe e a incluir índices, Tesouro e cripto. A busca também entrou no 404
+- [X] Menu novo: Ações · FIIs · ETFs · BDRs · Índices · Tesouro · Cripto · Setores · Agenda · Raio-X · Vídeos (mobile: drawer). "Mercado" abre a lista (é a porta do portal); Sobre foi para o rodapé. Gaveta em `<details>`
+- [X] Teste: landing continua < 90 kB gzip de JS inicial e **zero cookie** (Playwright/CI verifica `document.cookie === ""` e ausência de `Set-Cookie`). O orçamento que vale é o de **170 kB** (§9, revisado em 21/09: só o runtime do Next 16 + React 19 passa de 90 kB); a landing ficou em 151,8 kB, medida no Lighthouse do CI. `e2e/zero-cookie.spec.ts` cobre nove páginas usando a busca, e o job `e2e` roda sem API
 
 ### 4.2 `/mercado` (portal)
 
-- [ ] Faixa completa (Ibovespa, IFIX, IDIV, SMLL, PTAX, Selic, CDI 12 m, IPCA 12 m, BTC) com `SourceBadge` por item
-- [ ] Blocos por classe com contadores factuais (`/v1/market/overview`) e links
-- [ ] Tab **Hoje**: `MoversList` ×3 (maiores altas, maiores baixas, mais negociadas por volume financeiro) com a métrica no título e `min_volume`
-- [ ] Tab **Eventos**: data-com e pagamentos do dia/semana, comunicados relevantes do dia, macro
-- [ ] `GlobalSearch` em destaque; disclaimer e rodapé de fontes (§8.10)
+- [X] Faixa completa (Ibovespa, IFIX, IDIV, SMLL, PTAX, Selic, CDI 12 m, IPCA 12 m, BTC) com `SourceBadge` por item
+- [X] Blocos por classe com contadores factuais (`/v1/market/overview`) e links
+- [X] Tab **Hoje**: `MoversList` ×3 (maiores altas, maiores baixas, mais negociadas por volume financeiro) com a métrica no título e `min_volume`
+- [X] Tab **Eventos**: data-com e pagamentos do dia/semana, comunicados relevantes do dia, macro. "Relevante" é a categoria **Fato Relevante** da CVM, não um critério nosso (`AGENDA_DOCUMENT_CATEGORIES`)
+- [X] `GlobalSearch` em destaque; disclaimer e rodapé de fontes (§8.10)
 
 ### 4.3 `/agenda`
 
-- [ ] `EventCalendar` semanal (padrão) e mensal; `/agenda/[ano]-[semana]` ISR; filtros por classe e tipo (proventos, comunicados, macro) na URL
-- [ ] `content/agenda-macro.json` do ano (Copom, IPCA/IPCA-15, IGP-M, FOMC, vencimentos de opções e índices) com `source_url` em cada item; teste de schema
-- [ ] JSON-LD `Event` por item; `noindex` em semanas passadas além de 12 meses
+- [X] `EventCalendar` semanal (padrão) e mensal; `/agenda/[ano]-[semana]` ISR; filtros por classe e tipo (proventos, comunicados, macro) na URL. O mês fica em `/agenda/mes/[ano]-[mes]` e mostra **contagens** (`/v1/market/events/calendar`): um mês do mercado inteiro passa do teto de itens. O filtro esconde por CSS, então a semana continua estática
+- [X] `content/agenda-macro.json` do ano (Copom, IPCA/IPCA-15, IGP-M, FOMC, vencimentos de opções e índices) com `source_url` em cada item; teste de schema. Mora em `apps/api/alpherion/data/content/` (3.2). 74 itens conferidos em 23/09/2026. **Lacunas:** IGP-M só nos decêndios de mai–dez (o calendário 2026-27 da FGV não traz o índice cheio) e vencimentos só de abril em diante (a página da B3 troca os rótulos de jan–mar)
+- [X] JSON-LD `Event` por item; `noindex` em semanas passadas além de 12 meses
 
 ### 4.4 `/setores` e `/setores/[slug]`
 
-- [ ] `SectorTree` (setor → subsetor → segmento B3; segmentos de FII)
-- [ ] Página do setor: tabela ordenável (cotação, variação, liquidez, P/L, P/VP, DY 12 m, market cap; padrão liquidez; URL com estado), agregados factuais, JSON-LD `ItemList`
-- [ ] `SameSectorList` nas páginas de ativo linkando para o setor
+- [X] `SectorTree` (setor → subsetor → segmento B3; segmentos de FII)
+- [X] Página do setor: tabela ordenável (cotação, variação, liquidez, P/L, P/VP, DY 12 m, market cap; padrão liquidez; URL com estado), agregados factuais, JSON-LD `ItemList`
+- [X] `SameSectorList` nas páginas de ativo linkando para o setor (já vinha da 3.5)
 
 ### 4.5 `/busca?q=` e presets
 
-- [ ] Resultado agrupado por classe (SSR, `noindex`)
-- [ ] Presets de ordenação em `/acoes` e `/fiis` por URL (`?sort=&dir=`) com título neutro ("Maior dividend yield 12 m"); `noindex` com parâmetros; **nunca** "melhores/baratas/oportunidades" (teste de lint de conteúdo sobre `content/` e títulos)
+- [X] Resultado agrupado por classe (SSR, `noindex`)
+- [X] Presets de ordenação em `/acoes` e `/fiis` por URL (`?sort=&dir=`) com título neutro ("Maior dividend yield 12 m"); `noindex` com parâmetros; **nunca** "melhores/baratas/oportunidades" (teste de lint de conteúdo sobre `content/` e títulos)
 
 ### 4.6 SEO e operação
 
-- [ ] Sitemaps: `/sitemap/setores.xml`, `/sitemap/agenda.xml`; `/mercado` e `/agenda` revalidadas pelo `revalidate_pages` após `market_events_rebuild`
-- [ ] Umami: eventos `search_open`, `search_select`, `agenda_filter`
+- [X] Sitemaps: `/sitemap/setores.xml`, `/sitemap/agenda.xml`; `/mercado` e `/agenda` revalidadas pelo `revalidate_pages` após `market_events_rebuild`
+- [X] Umami: eventos `search_open`, `search_select`, `agenda_filter`
 - [ ] **Vídeo 2 (02/10)** demonstra o portal e o raio-x (ambiente de produção, carteira ilustrativa)
 
 **Pronto quando:** header com faixa e busca em todas as páginas do site público; `/mercado`, `/agenda`, `/setores/[slug]` e `/busca` no ar com dados reais; teste de zero cookie e orçamento de JS verdes; Lighthouse ≥ 95 em `/mercado`. → **tag `v0.3.0`**.

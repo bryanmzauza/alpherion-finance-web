@@ -17,6 +17,7 @@ a trava de licença (`flags.Gate`) é aplicada depois, na rota.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any, Final
@@ -47,11 +48,14 @@ SORTABLE: Final[dict[str, Any]] = {
     "ticker": Security.ticker,
     "company_name": Security.company_name,
     "volume": DailyQuote.volume,
+    # A variação é calculada por consulta (fechamento sobre o do pregão anterior); o
+    # valor aqui é só o marcador — `list_securities` troca pela expressão.
     "change": DailyQuote.close,
     "dy_12m": IndicatorDaily.dy_12m,
     "pe": IndicatorDaily.pe,
     "pb": IndicatorDaily.pb,
-    "pvp": IndicatorDaily.pvp,
+    # P/VP da lista: o do FII (valor patrimonial da cota) ou, na ação, o preço sobre VPA.
+    "pvp": func.coalesce(IndicatorDaily.pvp, IndicatorDaily.pb),
     "roe": IndicatorDaily.roe,
     "market_cap": IndicatorDaily.market_cap,
 }
@@ -59,6 +63,18 @@ SORTABLE: Final[dict[str, Any]] = {
 #: Ordem padrão: **liquidez**, que é neutra. Alfabética privilegiaria o começo do
 #: alfabeto; qualquer indicador de valuation insinuaria uma recomendação (ADR-018).
 DEFAULT_SORT: Final = "volume"
+
+#: Classe pedida → tipos que ela reúne. `unit` é ação para quem lê a lista de ações, e
+#: `fiagro` é fundo listado ao lado dos FIIs.
+TYPE_FAMILIES: Final[dict[str, tuple[str, ...]]] = {
+    "stock": ("stock", "unit"),
+    "fii": ("fii", "fiagro"),
+}
+
+#: Teto de itens da agenda numa resposta. Maior que o das listas porque uma semana do
+#: mercado inteiro (proventos, fatos relevantes e macro) passa de 100 com folga; a
+#: consulta é por intervalo de datas indexado, então o teto não ameaça o timeout.
+MAX_EVENTS: Final = 500
 
 #: Intervalos aceitos no histórico, em dias. `max` é o que houver.
 RANGES: Final[dict[str, int | None]] = {
@@ -97,7 +113,7 @@ async def source_ref(
 async def search(
     session: AsyncSession, query: str, *, limit: int = 20
 ) -> list[schemas.SecuritySummary]:
-    """Busca por ticker ou nome, sem acento e sem caixa.
+    """Busca por ticker ou nome, sem acento e sem caixa, com a cotação do último pregão.
 
     O ticker exato vem primeiro: quem digita "PETR4" quer a PETR4, não a primeira
     empresa cujo nome contenha "petr".
@@ -106,8 +122,10 @@ async def search(
     if len(term) < 2:
         return []
     like = f"%{term.lower()}%"
+    latest = await _latest_quote_date(session)
     statement = (
-        select(Security)
+        _with_market_data(select(Security), latest)
+        .add_columns(DailyQuote.close, DailyQuote.volume)
         .where(
             Security.status == "active",
             or_(
@@ -121,12 +139,13 @@ async def search(
         .order_by(
             (func.lower(Security.ticker) == term.lower()).desc(),
             func.lower(Security.ticker).startswith(term.lower()).desc(),
+            DailyQuote.volume.desc().nulls_last(),
             Security.ticker,
         )
         .limit(min(limit, MAX_PAGE_SIZE))
     )
-    rows = (await session.execute(statement)).scalars().all()
-    return [_summary(row) for row in rows]
+    rows = (await session.execute(statement)).all()
+    return [_summary(row[0], close=row[1], volume=row[2]) for row in rows]
 
 
 async def list_securities(
@@ -145,10 +164,12 @@ async def list_securities(
         raise ValueError(f"ordenação não permitida: {sort!r}")
     size = max(1, min(page_size, MAX_PAGE_SIZE))
     latest = await _latest_quote_date(session)
+    previous = await _previous_quote_date(session, latest) if latest else None
 
     base = select(Security).where(Security.status == "active")
     if type_:
-        base = base.where(Security.type == type_)
+        # `unit` mora em /acoes e `fiagro` em /fiis: pedir a classe traz as duas.
+        base = base.where(Security.type.in_(TYPE_FAMILIES.get(type_, (type_,))))
     if sector_slug:
         base = base.where(Security.sector_slug == sector_slug)
 
@@ -160,11 +181,32 @@ async def list_securities(
         await session.execute(select(func.count()).select_from(joined.subquery()))
     ).scalar() or 0
 
-    column = SORTABLE[sort]
+    # Variação do dia = fechamento de hoje sobre o do pregão anterior. Sem pregão
+    # anterior, `null` — zero diria "não variou", o que não foi medido.
+    anterior = (
+        select(DailyQuote.ticker, DailyQuote.close.label("previous_close"))
+        .where(DailyQuote.date == previous)
+        .subquery()
+    )
+    change = (DailyQuote.close - anterior.c.previous_close) / func.nullif(
+        anterior.c.previous_close, 0
+    )
+
+    column = change if sort == "change" else SORTABLE[sort]
     ordering = column.desc().nulls_last() if descending else column.asc().nulls_last()
     rows = (
         await session.execute(
-            joined.add_columns(DailyQuote.close, DailyQuote.volume)
+            joined.outerjoin(anterior, anterior.c.ticker == Security.ticker)
+            .add_columns(
+                DailyQuote.close,
+                DailyQuote.volume,
+                change.label("change"),
+                IndicatorDaily.pe,
+                func.coalesce(IndicatorDaily.pvp, IndicatorDaily.pb),
+                IndicatorDaily.dy_12m,
+                IndicatorDaily.roe,
+                IndicatorDaily.market_cap,
+            )
             .order_by(ordering, Security.ticker)
             .offset((max(1, page) - 1) * size)
             .limit(size)
@@ -172,7 +214,19 @@ async def list_securities(
     ).all()
 
     return schemas.Page(
-        items=[_summary(row[0], close=row[1], volume=row[2]) for row in rows],
+        items=[
+            _summary(row[0], close=row[1], volume=row[2]).model_copy(
+                update={
+                    "change_percent_day": row[3],
+                    "pe": row[4],
+                    "pvp": row[5],
+                    "dy_12m": row[6],
+                    "roe": row[7],
+                    "market_cap": row[8],
+                }
+            )
+            for row in rows
+        ],
         total=total,
         page=max(1, page),
         page_size=size,
@@ -198,13 +252,30 @@ async def _latest_quote_date(session: AsyncSession) -> date | None:
     return (await session.execute(select(func.max(DailyQuote.date)))).scalar()
 
 
+async def _previous_quote_date(session: AsyncSession, today: date) -> date | None:
+    return (
+        await session.execute(select(func.max(DailyQuote.date)).where(DailyQuote.date < today))
+    ).scalar()
+
+
+#: Papel sem cotação no último pregão: o "—" diz por quê (a trava de licença, quando se
+#: aplica, não apaga este motivo — ver `flags.Gate`).
+NO_TRADE_REASON: Final = "sem negócio no último pregão carregado"
+
+
 def _summary(
     row: Security,
     *,
     close: Decimal | None = None,
     volume: Decimal | None = None,
 ) -> schemas.SecuritySummary:
+    reasons = (
+        dict.fromkeys(("price", "change_percent_day", "volume"), NO_TRADE_REASON)
+        if close is None
+        else {}
+    )
     return schemas.SecuritySummary(
+        missing_reasons=reasons,
         ticker=row.ticker,
         type=row.type,
         company_name=row.company_name,
@@ -544,38 +615,104 @@ async def events(
     *,
     start: date | None = None,
     end: date | None = None,
-    kind: str | None = None,
+    kind: str | Sequence[str] | None = None,
     ticker: str | None = None,
+    type_: str | None = None,
+    document_categories: Sequence[str] | None = None,
     limit: int = MAX_PAGE_SIZE,
 ) -> list[schemas.MarketEvent]:
-    first = start or date.today()
-    last = end or first + timedelta(days=7)
-    statement = select(MarketEventRow).where(MarketEventRow.date.between(first, last))
-    if kind:
-        statement = statement.where(MarketEventRow.kind == kind)
-    if ticker:
-        statement = statement.where(MarketEventRow.ticker == ticker.upper())
-
+    """Agenda por intervalo, com a classe de cada papel para o filtro da página."""
+    statement = _events_filter(
+        select(MarketEventRow, Security.type).outerjoin(
+            Security, Security.ticker == MarketEventRow.ticker
+        ),
+        start=start,
+        end=end,
+        kind=kind,
+        ticker=ticker,
+        type_=type_,
+        document_categories=document_categories,
+    )
     rows = (
-        (
-            await session.execute(
-                statement.order_by(MarketEventRow.date, MarketEventRow.id).limit(
-                    min(limit, MAX_PAGE_SIZE)
-                )
+        await session.execute(
+            statement.order_by(MarketEventRow.date, MarketEventRow.id).limit(
+                max(1, min(limit, MAX_EVENTS))
             )
         )
-        .scalars()
-        .all()
-    )
+    ).all()
     return [
         schemas.MarketEvent(
             id=row.id,
             kind=row.kind,
             date=row.date,
             ticker=row.ticker,
+            security_type=security_type,
             title=row.title,
             payload=row.payload,
             source=row.source,
         )
-        for row in rows
+        for row, security_type in rows
     ]
+
+
+async def event_counts(
+    session: AsyncSession,
+    *,
+    start: date,
+    end: date,
+    kind: str | Sequence[str] | None = None,
+    type_: str | None = None,
+    document_categories: Sequence[str] | None = None,
+) -> list[schemas.EventCount]:
+    """Contagem por dia e tipo — a vista mensal da agenda, sem teto de itens."""
+    statement = _events_filter(
+        select(MarketEventRow.date, MarketEventRow.kind, func.count())
+        .select_from(MarketEventRow)
+        .outerjoin(Security, Security.ticker == MarketEventRow.ticker),
+        start=start,
+        end=end,
+        kind=kind,
+        ticker=None,
+        type_=type_,
+        document_categories=document_categories,
+    )
+    rows = (
+        await session.execute(
+            statement.group_by(MarketEventRow.date, MarketEventRow.kind).order_by(
+                MarketEventRow.date, MarketEventRow.kind
+            )
+        )
+    ).all()
+    return [schemas.EventCount(date=row[0], kind=row[1], count=int(row[2])) for row in rows]
+
+
+def _events_filter(
+    statement: Select[Any],
+    *,
+    start: date | None,
+    end: date | None,
+    kind: str | Sequence[str] | None,
+    ticker: str | None,
+    type_: str | None,
+    document_categories: Sequence[str] | None,
+) -> Select[Any]:
+    first = start or date.today()
+    last = end or first + timedelta(days=7)
+    statement = statement.where(MarketEventRow.date.between(first, last))
+    kinds = [kind] if isinstance(kind, str) else list(kind or [])
+    if kinds:
+        statement = statement.where(MarketEventRow.kind.in_(kinds))
+    if ticker:
+        statement = statement.where(MarketEventRow.ticker == ticker.upper())
+    if type_:
+        statement = statement.where(Security.type.in_(TYPE_FAMILIES.get(type_, (type_,))))
+    if document_categories:
+        # O filtro de categoria vale só para comunicado: provento e macro não têm
+        # categoria da CVM e não podem sumir por causa dele.
+        statement = statement.where(
+            or_(
+                MarketEventRow.kind != "document",
+                MarketEventRow.payload["categoria"].astext.in_(list(document_categories)),
+            )
+        )
+    return statement

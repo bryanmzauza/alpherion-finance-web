@@ -38,14 +38,22 @@ SecurityType = Literal["stock", "unit", "fii", "fiagro", "etf", "bdr"]
 
 @router.get("/market/strip", response_model=list[schemas.StripItem])
 async def get_strip(session: SessionDep, gate: GateDep) -> list[schemas.StripItem]:
-    """Faixa do header. Item indisponível vem `null` com motivo — a faixa nunca mente."""
+    """Faixa do header: os cinco itens de `HEADER_STRIP_KEYS`, resposta mínima (§2.1).
+
+    Item indisponível vem `null` com motivo — a faixa nunca mente. A faixa completa,
+    com os nove itens, sai em `/market/overview`.
+    """
     return await cache.cached_list(
-        "strip", model=schemas.StripItem, loader=lambda: _strip(session, gate)
+        "strip",
+        model=schemas.StripItem,
+        loader=lambda: _strip(session, gate, keys=market_data.HEADER_STRIP_KEYS),
     )
 
 
-async def _strip(session: AsyncSession, gate: Gate) -> list[schemas.StripItem]:
-    items = await market_data.strip(session)
+async def _strip(
+    session: AsyncSession, gate: Gate, *, keys: tuple[str, ...] | None = None
+) -> list[schemas.StripItem]:
+    items = await market_data.strip(session, keys)
     travados = []
     for item in items:
         is_crypto = item.key in {"bitcoin", "ethereum"}
@@ -94,18 +102,69 @@ async def get_movers(
     )
 
 
+EventKind = Literal["ex_date", "payment", "document", "macro", "corporate"]
+
+#: Janela máxima de uma consulta à agenda. Um mês e pouco cobre a vista mensal; mais
+#: que isso é varredura, e varredura não é o que uma página pede.
+MAX_EVENTS_WINDOW = dt.timedelta(days=42)
+
+
+def _window(start: dt.date | None, end: dt.date | None) -> tuple[dt.date, dt.date]:
+    first = start or dt.date.today()
+    last = end or first + dt.timedelta(days=7)
+    if last < first:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="`to` antes de `from`")
+    if last - first > MAX_EVENTS_WINDOW:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"janela da agenda passa de {MAX_EVENTS_WINDOW.days} dias",
+        )
+    return first, last
+
+
 @router.get("/market/events", response_model=list[schemas.MarketEvent])
 async def get_events(
     session: SessionDep,
     from_: Annotated[dt.date | None, Query(alias="from")] = None,
     to: dt.date | None = None,
-    kind: Literal["ex_date", "payment", "document", "macro", "corporate"] | None = None,
+    kind: Annotated[list[EventKind] | None, Query()] = None,
+    type: SecurityType | None = None,  # noqa: A002 - nome do parâmetro no contrato
     ticker: str | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    category: Annotated[list[str] | None, Query(max_length=10)] = None,
+    limit: Annotated[int, Query(ge=1, le=repository.MAX_EVENTS)] = 100,
 ) -> list[schemas.MarketEvent]:
-    """Agenda: proventos, comunicados e macro. Só fato com data e fonte."""
+    """Agenda: proventos, comunicados e macro. Só fato com data e fonte.
+
+    `kind` e `category` aceitam vários valores (`?kind=ex_date&kind=payment`).
+    `category` filtra só comunicados — "Fato Relevante" é a categoria da própria CVM,
+    não um juízo nosso sobre o que é relevante.
+    """
+    first, last = _window(from_, to)
     return await repository.events(
-        session, start=from_, end=to, kind=kind, ticker=ticker, limit=limit
+        session,
+        start=first,
+        end=last,
+        kind=kind,
+        type_=type,
+        ticker=ticker,
+        document_categories=category,
+        limit=limit,
+    )
+
+
+@router.get("/market/events/calendar", response_model=list[schemas.EventCount])
+async def get_event_counts(
+    session: SessionDep,
+    from_: Annotated[dt.date | None, Query(alias="from")] = None,
+    to: dt.date | None = None,
+    kind: Annotated[list[EventKind] | None, Query()] = None,
+    type: SecurityType | None = None,  # noqa: A002
+    category: Annotated[list[str] | None, Query(max_length=10)] = None,
+) -> list[schemas.EventCount]:
+    """Quantos eventos de cada tipo caem em cada dia — a vista mensal da `/agenda`."""
+    first, last = _window(from_, to)
+    return await repository.event_counts(
+        session, start=first, end=last, kind=kind, type_=type, document_categories=category
     )
 
 
@@ -157,12 +216,13 @@ async def list_sectors(session: SessionDep) -> list[schemas.SectorNode]:
     )
 
 
-@router.get("/sectors/{slug}", response_model=schemas.SectorNode)
-async def get_sector(session: SessionDep, slug: str) -> schemas.SectorNode:
+@router.get("/sectors/{slug}", response_model=schemas.SectorDetail)
+async def get_sector(session: SessionDep, gate: GateDep, slug: str) -> schemas.SectorDetail:
+    """O setor e os agregados factuais. Os papéis vêm de `/securities?sector=`."""
     result = await market_data.sector(session, slug)
     if result is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"setor não encontrado: {slug}")
-    return result
+    return gate.apply(result)
 
 
 # --- índices ----------------------------------------------------------------

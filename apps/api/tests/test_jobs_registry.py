@@ -73,6 +73,7 @@ def test_jobs_do_plano_existem() -> None:
         "b3_index_composition",
         "cvm_companies",
         "cvm_statements",
+        "cvm_company_facts",
         "cvm_fii_reports",
         "cvm_documents",
         "tesouro_daily",

@@ -16,7 +16,8 @@ arquivo depois da data (protocolo em análise).
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
+import re
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -43,11 +44,14 @@ RELEVANT_CATEGORIES: Final = frozenset(
         "aviso aos acionistas",
         "assembleia",
         "calendario de eventos corporativos",
-        "politica de negociacao",
+        "politica de negociacao de valores mobiliarios",
         "acordo de acionistas",
-        "reunicao da administracao",
+        "reuniao da administracao",
     }
 )
+
+#: `numSequencia` do link de download: identifica o documento quando o protocolo falta.
+SEQUENCE_RE: Final = re.compile(r"[?&]numSequencia=(\d+)")
 
 #: Só o protocolo cancelado sai da lista; "ativo" e "reapresentado" ficam.
 CANCELLED: Final = "cancelado"
@@ -76,10 +80,17 @@ def yearly_url(year: int, *, zipped: bool = False) -> str:
 def _protocol(row: Row) -> str | None:
     """Identificador estável da entrega.
 
-    O IPE traz `Protocolo_Entrega`; em anos antigos, só o `Id_Documento`. Um dos dois
-    tem de existir — é o que garante que reprocessar o ano não duplique a lista.
+    O IPE traz `Protocolo_Entrega`; em anos antigos, só o `Id_Documento`. Algumas
+    entregas (≈1,5% de 2026, muitas de "Relatório Proventos") vêm com os dois vazios —
+    aí vale o `numSequencia` do link da CVM, que é único por documento. É o que garante
+    que reprocessar o ano não duplique a lista.
     """
-    return row.text("protocolo_entrega", "id_documento", "protocolo", limit=40)
+    protocol = row.text("protocolo_entrega", "id_documento", "protocolo", limit=40)
+    if protocol:
+        return protocol
+    link = row.get("link_download", "url_documento", "link") or ""
+    match = SEQUENCE_RE.search(link)
+    return f"seq-{match.group(1)}" if match else None
 
 
 def parse_documents(
@@ -119,6 +130,20 @@ def parse_documents(
         )
 
 
+def unique_by_protocol(documents: Iterable[DocumentRow]) -> list[DocumentRow]:
+    """Um documento por protocolo.
+
+    O arquivo anual da CVM repete linhas inteiras (121 protocolos em 2026), e o upsert
+    não aceita a mesma chave duas vezes no mesmo lote. Fica a entrega mais recente.
+    """
+    unique: dict[str, DocumentRow] = {}
+    for document in documents:
+        current = unique.get(document.protocol)
+        if current is None or document.delivered_at >= current.delivered_at:
+            unique[document.protocol] = document
+    return list(unique.values())
+
+
 def is_relevant(category: str) -> bool:
     return strip_accents(category).strip().lower() in RELEVANT_CATEGORIES
 
@@ -153,6 +178,8 @@ def fetch_year(
                 http=http,
             )
             path = extract_all(zip_path, tmp_path / "csv", max_bytes=MAX_UNCOMPRESSED_BYTES)[0]
-        documents = list(parse_documents(read_rows(path), since=since, only_relevant=only_relevant))
+        documents = unique_by_protocol(
+            parse_documents(read_rows(path), since=since, only_relevant=only_relevant)
+        )
     logger.info("IPE %d: %d documentos desde %s", year, len(documents), since or "início do ano")
     return documents

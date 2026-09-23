@@ -1,6 +1,451 @@
 {
   "$schema": "./agenda-macro.schema.json",
   "ano": 2026,
-  "nota": "Agenda macro do ano — Copom, IPCA/IPCA-15, IGP-M, FOMC e vencimentos. Preenchida na Etapa 4.3 do plano, um item por data divulgada, cada um com o `source_url` do calendário oficial que a anuncia. Item sem `source_url` é descartado pelo pipeline: a agenda só tem fato com fonte.",
-  "eventos": []
+  "nota": "Agenda macro de 2026. Cada item vem de um calendário oficial, conferido em 23/09/2026: Copom (BCB; datas conferidas também na imprensa, porque a página do BCB é renderizada em JavaScript), FOMC (Federal Reserve), IPCA e IPCA-15 (API de calendário do IBGE), IGP-M (calendário 2026-2027 da FGV, que traz só os decêndios de maio em diante) e vencimentos de opções (B3, de abril em diante: a página da B3 troca os rótulos de ações e Ibovespa entre janeiro e março). Item sem `source_url` é descartado pelo pipeline.",
+  "eventos": [
+    {
+      "data": "2026-01-09",
+      "titulo": "IPCA de dezembro/2025 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-01-27",
+      "titulo": "IPCA-15 de janeiro/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-01-28",
+      "titulo": "Copom — decisão da taxa Selic",
+      "detalhe": "Reunião de 27 e 28/01; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.bcb.gov.br/controleinflacao/calendarioreunioescopom"
+    },
+    {
+      "data": "2026-01-28",
+      "titulo": "FOMC (Fed) — decisão de juros dos EUA",
+      "detalhe": "Reunião de 27 e 28/01; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "data": "2026-02-10",
+      "titulo": "IPCA de janeiro/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-02-27",
+      "titulo": "IPCA-15 de fevereiro/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-03-12",
+      "titulo": "IPCA de fevereiro/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-03-18",
+      "titulo": "Copom — decisão da taxa Selic",
+      "detalhe": "Reunião de 17 e 18/03; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.bcb.gov.br/controleinflacao/calendarioreunioescopom"
+    },
+    {
+      "data": "2026-03-18",
+      "titulo": "FOMC (Fed) — decisão de juros dos EUA",
+      "detalhe": "Reunião de 17 e 18/03; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "data": "2026-03-26",
+      "titulo": "IPCA-15 de março/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-04-10",
+      "titulo": "IPCA de março/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-04-15",
+      "titulo": "Vencimento de opções sobre o Ibovespa (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-04-17",
+      "titulo": "Vencimento de opções sobre ações (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-04-28",
+      "titulo": "IPCA-15 de abril/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-04-29",
+      "titulo": "Copom — decisão da taxa Selic",
+      "detalhe": "Reunião de 28 e 29/04; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.bcb.gov.br/controleinflacao/calendarioreunioescopom"
+    },
+    {
+      "data": "2026-04-29",
+      "titulo": "FOMC (Fed) — decisão de juros dos EUA",
+      "detalhe": "Reunião de 28 e 29/04; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "data": "2026-05-12",
+      "titulo": "IGP-M — 1º decêndio de maio/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-05-12",
+      "titulo": "IPCA de abril/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-05-13",
+      "titulo": "Vencimento de opções sobre o Ibovespa (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-05-15",
+      "titulo": "Vencimento de opções sobre ações (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-05-20",
+      "titulo": "IGP-M — 2º decêndio de maio/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-05-27",
+      "titulo": "IPCA-15 de maio/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-06-11",
+      "titulo": "IGP-M — 1º decêndio de junho/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-06-12",
+      "titulo": "IPCA de maio/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-06-17",
+      "titulo": "Copom — decisão da taxa Selic",
+      "detalhe": "Reunião de 16 e 17/06; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.bcb.gov.br/controleinflacao/calendarioreunioescopom"
+    },
+    {
+      "data": "2026-06-17",
+      "titulo": "FOMC (Fed) — decisão de juros dos EUA",
+      "detalhe": "Reunião de 16 e 17/06; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "data": "2026-06-17",
+      "titulo": "Vencimento de opções sobre o Ibovespa (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-06-18",
+      "titulo": "IGP-M — 2º decêndio de junho/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-06-19",
+      "titulo": "Vencimento de opções sobre ações (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-06-25",
+      "titulo": "IPCA-15 de junho/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-07-09",
+      "titulo": "IGP-M — 1º decêndio de julho/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-07-10",
+      "titulo": "IPCA de junho/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-07-15",
+      "titulo": "Vencimento de opções sobre o Ibovespa (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-07-17",
+      "titulo": "Vencimento de opções sobre ações (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-07-21",
+      "titulo": "IGP-M — 2º decêndio de julho/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-07-28",
+      "titulo": "IPCA-15 de julho/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-07-29",
+      "titulo": "FOMC (Fed) — decisão de juros dos EUA",
+      "detalhe": "Reunião de 28 e 29/07; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "data": "2026-08-05",
+      "titulo": "Copom — decisão da taxa Selic",
+      "detalhe": "Reunião de 4 e 5/08; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.bcb.gov.br/controleinflacao/calendarioreunioescopom"
+    },
+    {
+      "data": "2026-08-11",
+      "titulo": "IGP-M — 1º decêndio de agosto/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-08-11",
+      "titulo": "IPCA de julho/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-08-12",
+      "titulo": "Vencimento de opções sobre o Ibovespa (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-08-19",
+      "titulo": "IGP-M — 2º decêndio de agosto/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-08-21",
+      "titulo": "Vencimento de opções sobre ações (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-08-26",
+      "titulo": "IPCA-15 de agosto/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-09-10",
+      "titulo": "IGP-M — 1º decêndio de setembro/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-09-11",
+      "titulo": "IPCA de agosto/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-09-16",
+      "titulo": "Copom — decisão da taxa Selic",
+      "detalhe": "Reunião de 15 e 16/09; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.bcb.gov.br/controleinflacao/calendarioreunioescopom"
+    },
+    {
+      "data": "2026-09-16",
+      "titulo": "FOMC (Fed) — decisão de juros dos EUA",
+      "detalhe": "Reunião de 15 e 16/09; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "data": "2026-09-16",
+      "titulo": "Vencimento de opções sobre o Ibovespa (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-09-18",
+      "titulo": "IGP-M — 2º decêndio de setembro/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-09-18",
+      "titulo": "Vencimento de opções sobre ações (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-09-25",
+      "titulo": "IPCA-15 de setembro/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-10-09",
+      "titulo": "IGP-M — 1º decêndio de outubro/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-10-09",
+      "titulo": "IPCA de setembro/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-10-14",
+      "titulo": "Vencimento de opções sobre o Ibovespa (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-10-16",
+      "titulo": "Vencimento de opções sobre ações (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-10-21",
+      "titulo": "IGP-M — 2º decêndio de outubro/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-10-23",
+      "titulo": "IPCA-15 de outubro/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-10-28",
+      "titulo": "FOMC (Fed) — decisão de juros dos EUA",
+      "detalhe": "Reunião de 27 e 28/10; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "data": "2026-11-04",
+      "titulo": "Copom — decisão da taxa Selic",
+      "detalhe": "Reunião de 3 e 4/11; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.bcb.gov.br/controleinflacao/calendarioreunioescopom"
+    },
+    {
+      "data": "2026-11-11",
+      "titulo": "IGP-M — 1º decêndio de novembro/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-11-12",
+      "titulo": "IPCA de outubro/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-11-18",
+      "titulo": "IGP-M — 2º decêndio de novembro/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-11-18",
+      "titulo": "Vencimento de opções sobre o Ibovespa (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-11-19",
+      "titulo": "Vencimento de opções sobre ações (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-11-26",
+      "titulo": "IPCA-15 de novembro/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    },
+    {
+      "data": "2026-12-09",
+      "titulo": "Copom — decisão da taxa Selic",
+      "detalhe": "Reunião de 8 e 9/12; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.bcb.gov.br/controleinflacao/calendarioreunioescopom"
+    },
+    {
+      "data": "2026-12-09",
+      "titulo": "FOMC (Fed) — decisão de juros dos EUA",
+      "detalhe": "Reunião de 8 e 9/12; a decisão é divulgada ao fim do segundo dia.",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "data": "2026-12-09",
+      "titulo": "IGP-M — 1º decêndio de dezembro/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-12-11",
+      "titulo": "IPCA de novembro/2026 (IBGE)",
+      "detalhe": "Inflação oficial do mês anterior.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html"
+    },
+    {
+      "data": "2026-12-16",
+      "titulo": "Vencimento de opções sobre o Ibovespa (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-12-17",
+      "titulo": "IGP-M — 2º decêndio de dezembro/2026 (FGV)",
+      "detalhe": "Leitura parcial do IGP-M do mês, às 11h.",
+      "source_url": "https://portalibre.fgv.br/sites/default/files/users/user2873/calendario-2026-2027_portal-da-inflacao_vf.pdf"
+    },
+    {
+      "data": "2026-12-18",
+      "titulo": "Vencimento de opções sobre ações (B3)",
+      "detalhe": null,
+      "source_url": "https://www.b3.com.br/pt_br/solucoes/plataformas/puma-trading-system/para-participantes-e-traders/calendario-de-negociacao/vencimentos/calendario-de-vencimentos-de-opcoes-sobre-acoes-e-indices/"
+    },
+    {
+      "data": "2026-12-23",
+      "titulo": "IPCA-15 de dezembro/2026 (IBGE)",
+      "detalhe": "Prévia da inflação oficial, coletada entre a metade do mês anterior e a do mês de referência.",
+      "source_url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9260-indice-nacional-de-precos-ao-consumidor-amplo-15.html"
+    }
+  ]
 }

@@ -13,6 +13,13 @@ Duas escolhas que valem explicação:
 - **Depreciação por nome, não por código.** É o único número aqui que a CVM não
   padroniza: cada companhia pendura a depreciação numa subconta diferente da DFC. Sem
   achá-la, o EBITDA fica `null` com motivo — melhor do que um EBITDA igual ao EBIT.
+- **Instituição financeira tem outro plano de contas.** Banco não separa circulante de
+  não circulante: no Itaú, "2.03" são os passivos financeiros ao custo amortizado e o
+  patrimônio líquido está em "2.08"; no BB, em "2.07"; o lucro dos controladores fica
+  em "3.09.01" num e "3.11.01" no outro. Por isso patrimônio e lucro são achados pelo
+  **nome** da conta (com o código como reserva), e os conceitos de circulante, caixa,
+  dívida e EBIT ficam ausentes **com o motivo** quando o balanço não tem "Passivo
+  Circulante" — antes, o ROE do Itaú saía 1,95% e liquidez corrente de banco saía número.
 
 Toda ausência é registrada: `Fundamentals.missing` vira o tooltip "—" da página (§3.5).
 """
@@ -54,6 +61,23 @@ ACCOUNTS: Final[dict[str, tuple[str, ...]]] = {
 
 #: A conta de depreciação não tem código fixo: procuramos pelo nome dentro da DFC.
 DEPRECIATION_TERMS: Final = ("depreciacao", "amortizacao", "exaustao")
+
+#: Conceitos que só existem no plano de contas comercial (com circulante). Em banco,
+#: ficam ausentes com `NOT_APPLICABLE_REASON`.
+COMMERCIAL_ONLY: Final = frozenset(
+    {
+        "ebit",
+        "current_assets",
+        "cash",
+        "short_term_investments",
+        "current_liabilities",
+        "debt_short",
+        "debt_long",
+    }
+)
+NOT_APPLICABLE_REASON: Final = (
+    "não se aplica a instituição financeira (plano de contas sem circulante)"
+)
 
 #: Em que demonstração cada conceito é procurado.
 STATEMENT_OF: Final[dict[str, str]] = {
@@ -153,7 +177,24 @@ def extract(
         period_type=period_type,
         consolidated=consolidated,
     )
+    financial = is_financial_layout(by_statement.get("bp_passivo", {}))
+    by_name = {
+        "equity": _by_name(
+            by_statement.get("bp_passivo", {}), level=2, starts=("patrimonio liquido",)
+        ),
+        "net_income": _by_name(
+            by_statement.get("dre", {}), level=3, contains=("socios da empresa controladora",)
+        )
+        or _by_name(by_statement.get("dre", {}), level=2, contains=("consolidado do periodo",)),
+    }
     for concept, codes in ACCOUNTS.items():
+        if financial and concept in COMMERCIAL_ONLY:
+            result.missing[concept] = NOT_APPLICABLE_REASON
+            continue
+        named = by_name.get(concept)
+        if named is not None and named.value is not None:
+            result.values[concept] = named.value
+            continue
         accounts = by_statement.get(STATEMENT_OF[concept], {})
         for code in codes:
             account = accounts.get(code)
@@ -169,6 +210,38 @@ def extract(
     else:
         result.missing["depreciation"] = "depreciação não identificada na DFC"
     return result
+
+
+def is_financial_layout(passivo: dict[str, StatementRow]) -> bool:
+    """Plano de contas de instituição financeira: 2.01 não é "Passivo Circulante"."""
+    first = passivo.get("2.01")
+    if first is None:
+        return False
+    return not _normalized(first.account_name).startswith("passivo circulante")
+
+
+def _normalized(text: str) -> str:
+    return " ".join(strip_accents(text).lower().replace("/", " ").split())
+
+
+def _by_name(
+    accounts: dict[str, StatementRow],
+    *,
+    level: int,
+    starts: tuple[str, ...] = (),
+    contains: tuple[str, ...] = (),
+) -> StatementRow | None:
+    """A conta de um nível do plano (2 = "2.03", 3 = "3.11.01") cujo nome casa.
+
+    Em ordem de código, para que a escolha seja sempre a mesma.
+    """
+    for code in sorted(accounts):
+        if code.count(".") != level - 1:
+            continue
+        name = _normalized(accounts[code].account_name)
+        if any(name.startswith(term) for term in starts) or any(term in name for term in contains):
+            return accounts[code]
+    return None
 
 
 def _find_depreciation(rows: Iterable[StatementRow]) -> Decimal | None:

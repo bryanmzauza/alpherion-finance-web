@@ -15,13 +15,13 @@ acontece de qualquer jeito. Por isso a falha é registrada e não re-levantada.
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, timedelta
 
 import httpx
 from sqlalchemy import select
 
 from alpherion.data.jobs import base
-from alpherion.db.models import Security
+from alpherion.db.models import Sector, Security
 from alpherion.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,18 @@ logger = logging.getLogger(__name__)
 JOB = "revalidate_pages"
 
 #: Páginas que mudam todo dia, independentemente de qual papel foi carregado.
-ALWAYS = ("/", "/mercado", "/agenda", "/acoes", "/fiis", "/etfs", "/bdrs", "/indices", "/tesouro")
+ALWAYS = (
+    "/",
+    "/mercado",
+    "/agenda",
+    "/acoes",
+    "/fiis",
+    "/etfs",
+    "/bdrs",
+    "/indices",
+    "/tesouro",
+    "/setores",
+)
 
 #: O Next revalida por caminho; mandar milhares de uma vez estoura o tempo da requisição.
 BATCH = 200
@@ -50,7 +61,12 @@ def run(*, paths: list[str] | None = None) -> None:
         if not settings.web_revalidate_url or not settings.web_revalidate_token:
             raise base.JobSkipped("WEB_REVALIDATE_URL/TOKEN não configurados")
 
-        alvos = paths or [*ALWAYS, *_asset_paths(ctx)]
+        alvos = paths or [
+            *ALWAYS,
+            *agenda_paths(date.today()),
+            *_sector_paths(ctx),
+            *_asset_paths(ctx),
+        ]
         enviados, falhas = 0, 0
         with httpx.Client(timeout=30.0) as http:
             for start in range(0, len(alvos), BATCH):
@@ -70,6 +86,26 @@ def run(*, paths: list[str] | None = None) -> None:
 
         ctx.wrote(enviados)
         ctx.notes["caminhos_com_falha"] = falhas
+
+
+def agenda_paths(today: date) -> list[str]:
+    """Semana atual e a seguinte da `/agenda`, e o mês corrente.
+
+    O formato é o do `web` (`lib/agenda.ts`): semana ISO com dois dígitos
+    (`/agenda/2026-39`) e mês em `/agenda/mes/2026-09`. A carga de hoje muda a semana
+    corrente (comunicados do dia) e a próxima (proventos recém-anunciados); semana
+    passada não muda mais.
+    """
+    paths = []
+    for day in (today, today + timedelta(days=7)):
+        year, week, _ = day.isocalendar()
+        paths.append(f"/agenda/{year}-{week:02d}")
+    paths.append(f"/agenda/mes/{today:%Y-%m}")
+    return paths
+
+
+def _sector_paths(ctx: base.JobContext) -> list[str]:
+    return [f"/setores/{slug}" for (slug,) in ctx.session.execute(select(Sector.slug))]
 
 
 def _asset_paths(ctx: base.JobContext) -> list[str]:

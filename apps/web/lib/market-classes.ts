@@ -82,12 +82,25 @@ export function classByType(type: SecurityType): MarketClass | undefined {
 
 // Os sete caminhos de dado de mercado, na ordem em que aparecem na landing (§5, seção 5)
 // e no menu do portal (Etapa 4.1). Um lugar só: a landing e o header não podem divergir.
-export const MARKET_LINKS: { href: string; label: string; hint: string }[] = [
+// `menu` é o rótulo curto do header, quando difere do da landing.
+export const MARKET_LINKS: { href: string; label: string; hint: string; menu?: string }[] = [
   { href: "/acoes", label: "Ações", hint: "cotação, proventos, indicadores" },
   { href: "/fiis", label: "FIIs", hint: "rendimentos e P/VP" },
   { href: "/etfs", label: "ETFs", hint: "índice replicado" },
   { href: "/bdrs", label: "BDRs", hint: "razão de conversão" },
   { href: "/indices", label: "Índices", hint: "carteira teórica datada" },
-  { href: "/tesouro", label: "Tesouro Direto", hint: "taxa e preço do dia" },
+  { href: "/tesouro", label: "Tesouro Direto", hint: "taxa e preço do dia", menu: "Tesouro" },
   { href: "/cripto", label: "Cripto", hint: "cotação em reais" },
+];
+
+// Menu do site público (site.md §2.1): Ações · FIIs · ETFs · BDRs · Índices · Tesouro ·
+// Cripto · Setores · Agenda · Raio-X · Vídeos. "Mercado" abre a lista porque é a porta
+// do portal — a faixa do header também leva para lá. Sobre e Contato ficam no rodapé.
+export const PORTAL_NAV: { href: string; label: string }[] = [
+  { href: "/mercado", label: "Mercado" },
+  ...MARKET_LINKS.map((link) => ({ href: link.href, label: link.menu ?? link.label })),
+  { href: "/setores", label: "Setores" },
+  { href: "/agenda", label: "Agenda" },
+  { href: "/raio-x", label: "Raio-X" },
+  { href: "/videos", label: "Vídeos" },
 ];

@@ -44,3 +44,7 @@ Thumbs.db
 # Logs e temporários
 *.log
 tmp/
+
+# Playwright (apps/web/e2e)
+test-results/
+playwright-report/

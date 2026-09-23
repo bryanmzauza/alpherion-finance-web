@@ -65,6 +65,11 @@ def statements_url(year: int, *, period_type: str = ANNUAL) -> str:
     return f"{BASE_URL}/CIA_ABERTA/DOC/ITR/DADOS/itr_cia_aberta_{year}.zip"
 
 
+def fre_url(year: int) -> str:
+    """Formulário de Referência: é nele (não no FCA) que está o capital social."""
+    return f"{BASE_URL}/CIA_ABERTA/DOC/FRE/DADOS/fre_cia_aberta_{year}.zip"
+
+
 def fca_url(year: int) -> str:
     """Formulário Cadastral: capital social e quantidade de ações em circulação."""
     return f"{BASE_URL}/CIA_ABERTA/DOC/FCA/DADOS/fca_cia_aberta_{year}.zip"
@@ -194,6 +199,12 @@ class FiiReportRow:
     manager: str | None
     administrator: str | None
     segment: str | None
+    #: ISIN da cota — o vínculo com o ticker. O cadastro de instrumentos da B3 traz o
+    #: ISIN, mas não o CNPJ do fundo.
+    isin: str | None = None
+    #: `Mercado_Negociacao_Bolsa`: a cota negocia na B3. Desempata quando dois fundos
+    #: declaram o mesmo ISIN (acontece: erro de cadastro na CVM).
+    exchange_listed: bool | None = None
 
 
 def parse_fii_monthly(rows: Iterator[Row]) -> Iterator[FiiReportRow]:
@@ -202,11 +213,15 @@ def parse_fii_monthly(rows: Iterator[Row]) -> Iterator[FiiReportRow]:
     Os três arquivos compartilham (CNPJ, data de referência, versão) e trazem recortes
     diferentes do mesmo informe — `merge_fii_reports` junta o que cada um tem.
     """
+    # Desde a Resolução CVM 175 (2025) as colunas falam em "Fundo_Classe"
+    # (`CNPJ_Fundo_Classe`, `Segmento_Atuacao`, `Total_Numero_Cotistas`); os nomes antigos
+    # ficam como apelido para reprocessar anos anteriores.
     for row in rows:
-        cnpj = row.digits("cnpj_fundo", "cnpj_cia")
+        cnpj = row.digits("cnpj_fundo_classe", "cnpj_fundo", "cnpj_cia")
         period = row.date("data_referencia", "dt_refer")
         if cnpj is None or period is None:
             continue
+        isin = row.text("codigo_isin", "isin", limit=12)
         yield FiiReportRow(
             cnpj=cnpj,
             # O informe é mensal: normalizamos para o 1º dia do mês, que é a chave.
@@ -215,14 +230,19 @@ def parse_fii_monthly(rows: Iterator[Row]) -> Iterator[FiiReportRow]:
             nav=row.decimal("patrimonio_liquido", "valor_patrimonio_liquido"),
             nav_per_share=row.decimal("valor_patrimonial_cotas", "valor_patrimonial_cota"),
             shares=row.decimal("cotas_emitidas", "quantidade_cotas_emitidas"),
-            shareholders=row.integer("quantidade_cotistas", "numero_cotistas"),
+            shareholders=row.integer(
+                "total_numero_cotistas", "quantidade_cotistas", "numero_cotistas"
+            ),
             income_per_share=row.decimal("valor_rendimento_cota", "rendimento_cota"),
             vacancy_physical=row.decimal("percentual_vacancia_fisica"),
             vacancy_financial=row.decimal("percentual_vacancia_financeira"),
             admin_fee=row.decimal("percentual_despesas_taxa_administracao"),
             manager=row.text("gestor", "nome_gestor", limit=200),
-            administrator=row.text("administrador", "nome_administrador", limit=200),
-            segment=row.text("segmento", limit=60),
+            administrator=row.text("nome_administrador", "administrador", limit=200),
+            segment=row.text("segmento_atuacao", "segmento", limit=60),
+            # "0" e vazio são o marcador da CVM para fundo sem cota listada.
+            isin=isin.upper() if isin and len(isin) == 12 else None,
+            exchange_listed=row.flag("mercado_negociacao_bolsa"),
         )
 
 
@@ -239,6 +259,8 @@ _FII_REPORT_FIELDS: Final = (
     "manager",
     "administrator",
     "segment",
+    "isin",
+    "exchange_listed",
 )
 
 
@@ -277,14 +299,19 @@ def fetch_fii_monthly(year: int, *, http: httpx.Client | None = None) -> list[Fi
     return reports
 
 
-# --- FCA: capital social e ações em circulação ------------------------------
+# --- FRE: capital social e ações em circulação ------------------------------
 
 
 @dataclass(frozen=True, slots=True)
 class CompanyFactRow:
-    """Linha de `company_facts`: o que transforma lucro em LPA e preço em market cap."""
+    """Linha de `company_facts`: o que transforma lucro em LPA e preço em market cap.
 
-    cvm_code: int
+    O arquivo do FRE identifica a companhia pelo **CNPJ** (não traz código CVM); quem
+    converte para `cvm_code` é o job, com o cadastro à mão.
+    """
+
+    cnpj: str | None
+    cvm_code: int | None
     reference_date: date
     shares_outstanding: Decimal | None
     capital_social: Decimal | None
@@ -292,21 +319,24 @@ class CompanyFactRow:
 
 
 def parse_company_facts(rows: Iterator[Row]) -> Iterator[CompanyFactRow]:
-    """Lê `fca_cia_aberta_capital_social_<ano>.csv`.
+    """Lê `fre_cia_aberta_capital_social_<ano>.csv`.
 
-    O arquivo tem uma linha por tipo de capital (emitido, subscrito, integralizado);
-    ficamos com o **integralizado**, que é o que existe de fato. Sem ele, a linha não
-    vira fato nenhum — melhor faltar o indicador do que publicar market cap errado.
+    O arquivo tem uma linha por tipo de capital (autorizado, emitido, subscrito,
+    integralizado); ficamos com o **integralizado**, que é o que existe de fato. Sem ele,
+    a linha não vira fato nenhum — melhor faltar o indicador do que publicar market cap
+    errado.
     """
     for row in rows:
+        cnpj = row.digits("cnpj_companhia", "cnpj_cia")
         cvm_code = row.integer("codigo_cvm", "cd_cvm")
         reference = row.date("data_referencia", "dt_refer")
-        if cvm_code is None or reference is None:
+        if (cnpj is None and cvm_code is None) or reference is None:
             continue
         kind = strip_accents(row.get("tipo_capital") or "").strip().upper()
-        if kind and "INTEGRALIZADO" not in kind:
+        if "INTEGRALIZADO" not in kind:
             continue
         yield CompanyFactRow(
+            cnpj=cnpj,
             cvm_code=cvm_code,
             reference_date=reference,
             shares_outstanding=row.decimal("quantidade_total_acoes", "quantidade_acoes"),
@@ -316,16 +346,22 @@ def parse_company_facts(rows: Iterator[Row]) -> Iterator[CompanyFactRow]:
 
 
 def fetch_company_facts(year: int, *, http: httpx.Client | None = None) -> list[CompanyFactRow]:
-    """Capital social do FCA do ano, uma linha por companhia (maior versão)."""
-    with _downloaded_zip(fca_url(year), f"fca_{year}.zip", http, match="capital_social") as files:
-        facts: dict[tuple[int, date], CompanyFactRow] = {}
+    """Capital social do FRE do ano, uma linha por companhia (maior versão).
+
+    O filtro é o nome exato do arquivo: o ZIP traz também `capital_social_classe_acao`
+    e `capital_social_titulo_conversivel`, com outras colunas.
+    """
+    with _downloaded_zip(
+        fre_url(year), f"fre_{year}.zip", http, match=f"capital_social_{year}"
+    ) as files:
+        facts: dict[tuple[str, date], CompanyFactRow] = {}
         for path in files:
             for fact in parse_company_facts(read_rows(path)):
-                key = (fact.cvm_code, fact.reference_date)
+                key = (fact.cnpj or str(fact.cvm_code), fact.reference_date)
                 current = facts.get(key)
                 if current is None or fact.version > current.version:
                     facts[key] = fact
-    logger.info("FCA %d: %d fatos cadastrais", year, len(facts))
+    logger.info("FRE %d: %d fatos de capital social", year, len(facts))
     return list(facts.values())
 
 

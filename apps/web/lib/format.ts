@@ -98,3 +98,32 @@ export function direction(value: string | number | null | undefined): "up" | "do
   if (n === null || n === 0) return "flat";
   return n > 0 ? "up" : "down";
 }
+
+/**
+ * Valor de um item da faixa, pela unidade que a API declara (`StripItem.unit`):
+ * índice em pontos inteiros, câmbio com quatro casas (é como a PTAX é publicada),
+ * taxa em pontos percentuais ("10,90%" — a API manda 10.9, não 0.109) e cripto em reais.
+ */
+export function stripValue(value: string | number | null | undefined, unit: string | null): string {
+  const n = toNumber(value);
+  if (n === null) return DASH;
+  switch (unit) {
+    case "pts":
+      return decimal(n, 0);
+    case "R$":
+      return `R$ ${decimal(n, 4)}`;
+    case "%":
+      return `${decimal(n, 2)}%`;
+    case "BRL":
+      return BRL.format(Math.round(n));
+    default:
+      return decimal(n, 2);
+  }
+}
+
+/** Valor por ação de provento: até 8 casas, porque é assim que o emissor anuncia. */
+export function perShare(value: string | number | null | undefined): string {
+  const n = toNumber(value);
+  if (n === null) return DASH;
+  return `R$ ${new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 8 }).format(n)}`;
+}

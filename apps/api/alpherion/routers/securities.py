@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from alpherion.auth import Caller, require_scopes
 from alpherion.db.session import get_session
-from alpherion.market import cache, repository, schemas
+from alpherion.market import cache, market_data, repository, schemas
 from alpherion.market.flags import Gate
 from alpherion.settings import Settings, get_settings
 
@@ -50,15 +50,25 @@ def _check_sort(sort: str) -> None:
         )
 
 
-@router.get("/assets/search", response_model=list[schemas.SecuritySummary])
+@router.get("/assets/search", response_model=schemas.AssetSearchResult)
 async def search_assets(
     session: SessionDep,
     gate: GateDep,
     q: Annotated[str, Query(min_length=2, max_length=60)],
-    limit: Annotated[int, Query(ge=1, le=50)] = 20,
-) -> list[schemas.SecuritySummary]:
-    """Busca global por ticker ou nome. Ticker exato vem primeiro."""
-    return gate.apply_all(await repository.search(session, q, limit=limit))
+    limit: Annotated[int, Query(ge=1, le=20)] = 6,
+) -> schemas.AssetSearchResult:
+    """Busca global (§2.3): ações, FIIs, ETFs, BDRs, índices, Tesouro e cripto, por classe.
+
+    `limit` é por grupo. Ticker exato vem primeiro dentro do grupo de papéis.
+    """
+    result = await market_data.search_assets(session, q, per_group=limit)
+    groups = [
+        group.model_copy(
+            update={"items": gate.apply_all(group.items, crypto=group.asset_class == "crypto")}
+        )
+        for group in result.groups
+    ]
+    return result.model_copy(update={"groups": groups})
 
 
 @router.get("/securities", response_model=schemas.Page[schemas.SecuritySummary])

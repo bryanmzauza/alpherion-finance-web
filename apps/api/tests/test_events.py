@@ -155,13 +155,56 @@ def test_arquivo_macro_ausente_ou_invalido_nao_quebra_a_agenda(tmp_path: Path) -
     assert list(events.from_macro(quebrado)) == []
 
 
-def test_arquivo_macro_do_repositorio_e_valido() -> None:
-    """O arquivo versionado começa vazio (Etapa 4.3), mas tem de ser JSON legível."""
+#: Quem pode ser fonte da agenda macro: o órgão que decide ou publica o número. Agregador,
+#: jornal e corretora ficam de fora — a agenda cita quem anuncia, não quem repercute.
+FONTES_OFICIAIS = (
+    "https://www.bcb.gov.br/",
+    "https://www.federalreserve.gov/",
+    "https://www.ibge.gov.br/",
+    "https://portalibre.fgv.br/",
+    "https://www.b3.com.br/",
+)
+
+
+def test_arquivo_macro_do_repositorio_segue_o_schema() -> None:
+    """O arquivo versionado cumpre `agenda-macro.schema.json` item a item.
+
+    Sem `jsonschema` no projeto, as regras do schema são conferidas aqui à mão — e o
+    teste lê o próprio schema para que as duas coisas não divirjam em silêncio.
+    """
+    schema = json.loads(events.MACRO_FILE.with_suffix(".schema.json").read_text(encoding="utf-8"))
+    item_schema = schema["properties"]["eventos"]["items"]
+    permitidos = set(item_schema["properties"])
+    obrigatorios = set(item_schema["required"])
+
     payload = json.loads(events.MACRO_FILE.read_text(encoding="utf-8"))
-    assert isinstance(payload["eventos"], list)
-    assert list(events.from_macro()) == [] or all(
-        e.payload and e.payload["fonte"] for e in events.from_macro()
-    )
+    assert set(schema["required"]) <= set(payload)
+    ano = payload["ano"]
+    itens = payload["eventos"]
+    assert itens, "a agenda macro do ano não pode estar vazia"
+
+    for item in itens:
+        assert obrigatorios <= set(item), item
+        assert set(item) <= permitidos, f"campo fora do schema: {set(item) - permitidos}"
+        dia = date.fromisoformat(item["data"])
+        assert dia.year == ano, item
+        assert 3 <= len(item["titulo"]) <= 160
+        assert item.get("detalhe") is None or len(item["detalhe"]) <= 300
+        assert item["source_url"].startswith(FONTES_OFICIAIS), item["source_url"]
+
+    # Ordem por data e nenhum item repetido: o id do evento é data + título.
+    chaves = [(item["data"], item["titulo"]) for item in itens]
+    assert chaves == sorted(chaves)
+    assert len(set(chaves)) == len(chaves)
+    # Nada é descartado na leitura: o arquivo inteiro vira agenda.
+    assert len(list(events.from_macro())) == len(itens)
+
+
+def test_agenda_macro_nao_projeta_nada() -> None:
+    """Só o que alguém anunciou: nenhuma expectativa, consenso ou "provável"."""
+    texto = events.MACRO_FILE.read_text(encoding="utf-8").lower()
+    for proibido in ("espera-se", "expectativa", "consenso", "projeção", "provável", "deve "):
+        assert proibido not in texto, proibido
 
 
 # --- agenda completa --------------------------------------------------------

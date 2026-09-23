@@ -22,7 +22,7 @@ from collections.abc import Sequence
 from decimal import Decimal
 from typing import Any, Final
 
-from sqlalchemy import Row, Select, func, null, select
+from sqlalchemy import Row, Select, func, null, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alpherion.db.models import (
@@ -32,6 +32,7 @@ from alpherion.db.models import (
     DailyQuote,
     IndexComposition,
     IndexDaily,
+    IndicatorDaily,
     MacroSeries,
     MarketIndex,
     Sector,
@@ -39,7 +40,7 @@ from alpherion.db.models import (
     TreasuryBond,
     TreasuryDaily,
 )
-from alpherion.market import repository, schemas, weekly
+from alpherion.market import accumulated, repository, schemas, weekly
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,8 @@ MIN_VOLUME_DEFAULT: Final = Decimal("1000000")
 #: Métricas aceitas em `/market/movers`. Fora daqui, 422.
 MOVER_METRICS: Final = ("change", "volume")
 
-#: Itens da faixa do header, na ordem em que aparecem (§4.2 do plano).
+#: A faixa completa de `/mercado`, na ordem em que aparece (§2.1, §4.2 do plano).
+#: `macro_12m` é acumulado composto (`accumulated.py`); `macro` é o último ponto da série.
 STRIP_ITEMS: Final[tuple[tuple[str, str, str], ...]] = (
     ("ibovespa", "Ibovespa", "index"),
     ("ifix", "IFIX", "index"),
@@ -58,10 +60,19 @@ STRIP_ITEMS: Final[tuple[tuple[str, str, str], ...]] = (
     ("smll", "SMLL", "index"),
     ("ptax_venda", "Dólar (PTAX)", "macro"),
     ("selic_meta", "Selic (meta)", "macro"),
-    ("cdi", "CDI", "macro"),
-    ("ipca", "IPCA (mês)", "macro"),
+    ("cdi_12m", "CDI 12 m", "macro_12m"),
+    ("ipca_12m", "IPCA 12 m", "macro_12m"),
     ("bitcoin", "Bitcoin", "crypto"),
 )
+
+#: A faixa do header de toda página pública: cinco itens, resposta mínima (§2.1).
+HEADER_STRIP_KEYS: Final = ("ibovespa", "ifix", "ptax_venda", "cdi_12m", "bitcoin")
+
+#: Série do SGS de onde sai cada acumulado, e se ela é diária ou mensal.
+ACCUMULATED_SERIES: Final[dict[str, tuple[str, str]]] = {
+    "cdi_12m": ("cdi", "daily"),
+    "ipca_12m": ("ipca", "monthly"),
+}
 
 UNITS: Final[dict[str, str]] = {"index": "pts", "macro": "%", "crypto": "BRL"}
 
@@ -69,18 +80,25 @@ UNITS: Final[dict[str, str]] = {"index": "pts", "macro": "%", "crypto": "BRL"}
 # --- faixa do header --------------------------------------------------------
 
 
-async def strip(session: AsyncSession) -> list[schemas.StripItem]:
-    """A faixa do header: índices, câmbio, juros, inflação e BTC.
+async def strip(
+    session: AsyncSession, keys: Sequence[str] | None = None
+) -> list[schemas.StripItem]:
+    """A faixa: índices, câmbio, juros, inflação e BTC — toda ou só os `keys` pedidos.
 
     Item indisponível vem com valor `null` e motivo — a faixa nunca some nem mostra
     zero, porque uma faixa com buraco é mais honesta que uma faixa inventada.
     """
+    wanted = set(keys) if keys is not None else None
     items: list[schemas.StripItem] = []
     for key, label, kind in STRIP_ITEMS:
+        if wanted is not None and key not in wanted:
+            continue
         if kind == "index":
             items.append(await _strip_index(session, key, label))
         elif kind == "macro":
             items.append(await _strip_macro(session, key, label))
+        elif kind == "macro_12m":
+            items.append(await _strip_accumulated(session, key, label))
         else:
             items.append(await _strip_crypto(session, key, label))
     return items
@@ -138,6 +156,37 @@ async def _strip_macro(session: AsyncSession, series: str, label: str) -> schema
         label=label,
         value=row[0],
         unit=unit,
+    )
+
+
+async def _strip_accumulated(session: AsyncSession, key: str, label: str) -> schemas.StripItem:
+    """CDI e IPCA acumulados em 12 meses, compostos a partir da série do SGS."""
+    series, cadence = ACCUMULATED_SERIES[key]
+    # 400 dias cobrem os 12 meses com folga para feriados; 14 meses, os 12 do IPCA.
+    since = dt.date.today() - dt.timedelta(days=400 if cadence == "daily" else 430)
+    rows = (
+        await session.execute(
+            select(MacroSeries.date, MacroSeries.value)
+            .where(MacroSeries.series == series, MacroSeries.date >= since)
+            .order_by(MacroSeries.date)
+        )
+    ).all()
+    points = [(row[0], row[1]) for row in rows if row[1] is not None]
+    compose = accumulated.daily_12m if cadence == "daily" else accumulated.monthly_12m
+    result = compose(points)
+
+    source = await repository.source_ref(session, "bcb", document="SGS/BCB")
+    if result.as_of is not None:
+        source = source.model_copy(
+            update={"document": f"SGS · acumulado em 12 meses até {result.as_of:%d/%m/%Y}"}
+        )
+    return schemas.StripItem(
+        source=source,
+        key=key,
+        label=label,
+        value=result.value,
+        unit=UNITS["macro"],
+        missing_reasons={"value": result.reason} if result.reason else {},
     )
 
 
@@ -216,6 +265,7 @@ async def movers(
         items=[
             schemas.Mover(
                 ticker=row.ticker,
+                type=row.type,
                 company_name=row.company_name,
                 price=row.close,
                 change_percent=row.change_percent,
@@ -250,6 +300,7 @@ def _movers_query(
     statement = (
         select(
             Security.ticker,
+            Security.type,
             Security.company_name,
             DailyQuote.close.label("close"),
             change.label("change_percent"),
@@ -291,9 +342,15 @@ async def counters(session: AsyncSession) -> dict[str, int]:
         )
     ).all()
     contagens = {str(kind): int(total) for kind, total in rows}
-    contagens["sectors"] = int(
-        (await session.execute(select(func.count()).select_from(Sector))).scalar() or 0
-    )
+    rows_por_tipo = (
+        await session.execute(select(Sector.kind, func.count()).group_by(Sector.kind))
+    ).all()
+    por_tipo: dict[str, int] = {str(kind): int(total) for kind, total in rows_por_tipo}
+    contagens["sectors"] = int(sum(por_tipo.values()))
+    # "Nº de setores" das ações e "nº de segmentos" dos FIIs são contagens diferentes
+    # na página (§2.1): uma árvore não mistura com a outra.
+    contagens["b3_segments"] = int(por_tipo.get("b3_segment", 0))
+    contagens["fii_segments"] = int(por_tipo.get("fii_segment", 0))
     contagens["indices"] = int(
         (await session.execute(select(func.count()).select_from(MarketIndex))).scalar() or 0
     )
@@ -332,17 +389,44 @@ async def sectors(session: AsyncSession) -> list[schemas.SectorNode]:
     ]
 
 
-async def sector(session: AsyncSession, slug: str) -> schemas.SectorNode | None:
+async def sector(session: AsyncSession, slug: str) -> schemas.SectorDetail | None:
+    """O setor e os agregados factuais: contagem e valor de mercado somado."""
     row = (await session.execute(select(Sector).where(Sector.slug == slug))).scalar_one_or_none()
     if row is None:
         return None
-    return schemas.SectorNode(
+
+    latest = await _latest_quote_date(session)
+    total, counted = None, 0
+    if latest is not None:
+        total, counted = (
+            await session.execute(
+                select(func.sum(IndicatorDaily.market_cap), func.count(IndicatorDaily.market_cap))
+                .join(Security, Security.ticker == IndicatorDaily.ticker)
+                .where(
+                    Security.sector_slug == slug,
+                    Security.status == "active",
+                    IndicatorDaily.date == latest,
+                )
+            )
+        ).one()
+
+    source = await repository.source_ref(session, "b3", document="classificação setorial B3")
+    reasons: dict[str, str] = {}
+    if total is None:
+        reasons["market_cap"] = "sem valor de mercado calculado para os papéis do setor"
+    elif latest is not None:
+        source = source.model_copy(update={"document": f"pregão de {latest:%d/%m/%Y}"})
+    return schemas.SectorDetail(
+        source=source,
+        missing_reasons=reasons,
         slug=row.slug,
         name=row.name,
         kind=row.kind,
         sector=row.sector,
         subsector=row.subsector,
         securities_count=row.securities_count,
+        market_cap=total,
+        market_cap_count=int(counted or 0),
     )
 
 
@@ -708,4 +792,103 @@ async def weekly_reading(
             for change in mudancas
             if change.missing_reason is not None
         },
+    )
+
+
+# --- busca global -----------------------------------------------------------
+
+#: Grupos da busca global, na ordem em que aparecem (§2.1). `unit` entra em ações e
+#: `fiagro` em FIIs — são as mesmas páginas.
+ASSET_CLASSES: Final = ("stock", "fii", "etf", "bdr", "index", "treasury", "crypto")
+_CLASS_OF_TYPE: Final[dict[str, str]] = {
+    "stock": "stock",
+    "unit": "stock",
+    "fii": "fii",
+    "fiagro": "fii",
+    "etf": "etf",
+    "bdr": "bdr",
+}
+
+
+async def search_assets(
+    session: AsyncSession, query: str, *, per_group: int = 6
+) -> schemas.AssetSearchResult:
+    """Busca em todas as classes, agrupada. Ticker exato vem primeiro dentro do grupo.
+
+    Cada grupo tem teto próprio: sem ele, "banco" devolveria vinte ações e esconderia o
+    índice financeiro e os FIIs de agências que o leitor também poderia querer.
+    """
+    term = query.strip()
+    groups: dict[str, list[schemas.AssetHit]] = {name: [] for name in ASSET_CLASSES}
+    if len(term) < 2:
+        return schemas.AssetSearchResult(query=term, groups=[])
+
+    for item in await repository.search(session, term, limit=per_group * 4):
+        group = groups.get(_CLASS_OF_TYPE.get(item.type, ""))
+        if group is not None and len(group) < per_group:
+            group.append(
+                schemas.AssetHit(
+                    type=item.type,
+                    code=item.ticker,
+                    name=item.trade_name or item.company_name,
+                    price=item.price,
+                )
+            )
+
+    like = f"%{term.lower()}%"
+    indices = (
+        await session.execute(
+            select(MarketIndex)
+            .where(
+                or_(
+                    func.lower(MarketIndex.name).like(like),
+                    func.lower(MarketIndex.b3_code).like(like),
+                    MarketIndex.slug.like(like),
+                )
+            )
+            .order_by((func.lower(MarketIndex.b3_code) == term.lower()).desc(), MarketIndex.name)
+            .limit(per_group)
+        )
+    ).scalars()
+    groups["index"] = [
+        schemas.AssetHit(type="index", code=row.slug, name=row.name) for row in indices
+    ]
+
+    bonds = (
+        await session.execute(
+            select(TreasuryBond)
+            .where(func.lower(TreasuryBond.name).like(like))
+            .order_by(TreasuryBond.maturity)
+            .limit(per_group)
+        )
+    ).scalars()
+    groups["treasury"] = [
+        schemas.AssetHit(type="treasury", code=row.slug, name=row.name) for row in bonds
+    ]
+
+    coins = (
+        await session.execute(
+            select(CryptoAsset)
+            .where(
+                or_(
+                    func.lower(CryptoAsset.name).like(like),
+                    func.lower(CryptoAsset.symbol) == term.lower(),
+                )
+            )
+            .order_by(CryptoAsset.market_cap_rank.nulls_last())
+            .limit(per_group)
+        )
+    ).scalars()
+    groups["crypto"] = [
+        schemas.AssetHit(type="crypto", code=row.id, name=f"{row.name} ({row.symbol.upper()})")
+        for row in coins
+    ]
+
+    return schemas.AssetSearchResult(
+        query=term,
+        groups=[
+            schemas.AssetSearchGroup(asset_class=name, items=groups[name])
+            for name in ASSET_CLASSES
+            if groups[name]
+        ],
     )

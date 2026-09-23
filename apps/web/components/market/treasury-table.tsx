@@ -3,6 +3,7 @@ import { currency, date, decimal } from "@/lib/format";
 import { Table, Td, Th, Thead, Tr } from "@/components/ui/table";
 import { SourceBadge } from "@/components/market/source-badge";
 import { Value } from "@/components/market/value";
+import { treasuryAnchor } from "@/lib/asset-search";
 
 // Títulos do Tesouro Direto, agrupados por indexador.
 //
@@ -46,7 +47,7 @@ export function TreasuryTable({ bonds }: { bonds: TreasuryBond[] }) {
             </Thead>
             <tbody>
               {list.map((bond) => (
-                <Tr key={bond.slug}>
+                <Tr key={bond.slug} id={treasuryAnchor(bond.slug)} className="scroll-mt-24 target:bg-navy-3">
                   <Td>
                     {bond.name}
                     {bond.coupon ? (

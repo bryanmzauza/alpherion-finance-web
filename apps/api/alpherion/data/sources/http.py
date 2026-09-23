@@ -33,7 +33,6 @@ ALLOWED_HOSTS: Final = frozenset(
         "www.b3.com.br",
         "bvmf.bmfbovespa.com.br",
         "sistemaswebb3-listados.b3.com.br",
-        "sistemaswebb3-indices.b3.com.br",
         "arquivos.b3.com.br",
         "www.tesourotransparente.gov.br",
         "api.bcb.gov.br",

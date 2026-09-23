@@ -41,6 +41,24 @@ def test_coluna_e_achada_por_apelido_e_sem_acento(tmp_path: Path) -> None:
     assert row.decimal("valor") == Decimal("1234.56")
 
 
+def test_ponto_da_cvm_e_decimal_e_nao_milhar(tmp_path: Path) -> None:
+    """A CVM publica `VL_CONTA` com ponto decimal e 10 casas (DFP do BB, ativo total).
+
+    Ler esse ponto como milhar multiplicava todo valor por 10¹⁰ e estourava a coluna.
+    """
+    path = _csv(
+        tmp_path,
+        "a.csv",
+        "VL_CONTA;PL;MILHAR;NEGATIVO",
+        "2398719197.0000000000;3785066.56;1.234.567;-12.5",
+    )
+    (row,) = _rows(path)
+    assert row.decimal("vl_conta") == Decimal("2398719197.0000000000")
+    assert row.decimal("pl") == Decimal("3785066.56")
+    assert row.decimal("milhar") == Decimal("1234567")
+    assert row.decimal("negativo") == Decimal("-12.5")
+
+
 def test_campo_vazio_e_marcador_de_ausencia_viram_none(tmp_path: Path) -> None:
     """Zero inventado vira indicador errado na página; ausência tem de ficar ausente."""
     path = _csv(tmp_path, "a.csv", "A;B;C", ";-;Não informado")
@@ -142,22 +160,34 @@ def test_vacancia_ausente_fica_none(tmp_path: Path) -> None:
     assert report.vacancy_financial is None
 
 
-# --- FCA --------------------------------------------------------------------
+# --- FRE: capital social -----------------------------------------------------
 
-FCA_HEADER = "Codigo_CVM;Data_Referencia;Versao;Tipo_Capital;Valor_Capital;Quantidade_Total_Acoes"
+# Cabeçalho real de `fre_cia_aberta_capital_social_2026.csv` (sem código CVM: só CNPJ).
+FRE_HEADER = (
+    "CNPJ_Companhia;Data_Referencia;Versao;ID_Documento;Nome_Companhia;ID_Capital_Social;"
+    "Tipo_Capital;Data_Autorizacao_Aprovacao;Valor_Capital;Prazo_Integralizacao;"
+    "Quantidade_Acoes_Ordinarias;Quantidade_Acoes_Preferenciais;Quantidade_Total_Acoes"
+)
+FRE_PETR = (
+    "33.000.167/0001-01;2026-12-31;12;161309;PETROLEO BRASILEIRO S.A. PETROBRAS;358070;"
+    "{tipo};2014-04-02;205431960490.52;Não aplicável;7442231382;5446501379;12888732761"
+)
 
 
-def test_fca_fica_so_com_o_capital_integralizado(tmp_path: Path) -> None:
+def test_fre_fica_so_com_o_capital_integralizado(tmp_path: Path) -> None:
     path = _csv(
         tmp_path,
-        "capital_social.csv",
-        FCA_HEADER,
-        "99999;2026-05-31;1;Capital Emitido;10.000.000,00;20.000.000",
-        "99999;2026-05-31;1;Capital Integralizado;8.000.000,00;13.044.496.930",
+        "fre_cia_aberta_capital_social_2026.csv",
+        FRE_HEADER,
+        FRE_PETR.format(tipo="Capital Autorizado"),
+        FRE_PETR.format(tipo="Capital Integralizado"),
     )
     (fact,) = list(cvm.parse_company_facts(read_rows(path)))
-    assert fact.shares_outstanding == Decimal("13044496930")
-    assert fact.capital_social == Decimal("8000000.00")
+    assert fact.cnpj == "33000167000101"
+    assert fact.cvm_code is None, "o FRE não traz código CVM; o job converte pelo CNPJ"
+    assert fact.shares_outstanding == Decimal("12888732761")
+    assert fact.capital_social == Decimal("205431960490.52")
+    assert fact.reference_date == date(2026, 12, 31)
 
 
 # --- IPE --------------------------------------------------------------------
@@ -181,6 +211,38 @@ def test_ipe_le_metadados_do_fato_relevante(tmp_path: Path) -> None:
     assert doc.subject == "Aquisição de ativo"
     assert doc.delivered_at == date(2026, 9, 18)
     assert doc.url.startswith("https://dados.cvm.gov.br/")
+
+
+def test_ipe_linha_repetida_vira_um_documento(tmp_path: Path) -> None:
+    """O arquivo anual da CVM repete linhas inteiras; o upsert não aceita chave repetida."""
+    path = _csv(tmp_path, "ipe.csv", IPE_HEADER, IPE_FATO, IPE_FATO)
+    docs = cvm_documents.unique_by_protocol(cvm_documents.parse_documents(read_rows(path)))
+    assert [d.protocol for d in docs] == ["123456"]
+
+
+def test_ipe_sem_protocolo_usa_a_sequencia_do_link(tmp_path: Path) -> None:
+    link = (
+        "https://www.rad.cvm.gov.br/ENET/frmDownloadDocumento.aspx?Tela=ext&descTipo=IPE"
+        "&CodigoInstituicao=1&numProtocolo=1477025&numSequencia=1001731&numVersao=1"
+    )
+    linha = IPE_FATO.replace(";123456;https://dados.cvm.gov.br/documento/123456", f";;{link}")
+    path = _csv(tmp_path, "ipe.csv", IPE_HEADER, linha)
+    (doc,) = list(cvm_documents.parse_documents(read_rows(path)))
+    assert doc.protocol == "seq-1001731"
+
+
+@pytest.mark.parametrize(
+    "categoria",
+    [
+        "Reunião da Administração",
+        "Política de Negociação de Valores Mobiliários",
+        "Fato Relevante",
+        "Calendário de Eventos Corporativos",
+    ],
+)
+def test_ipe_categorias_com_o_nome_que_a_cvm_usa(categoria: str) -> None:
+    """Nomes conferidos no IPE de 2026 — um erro de digitação aqui some com a categoria."""
+    assert cvm_documents.is_relevant(categoria)
 
 
 def test_ipe_descarta_entrega_cancelada(tmp_path: Path) -> None:
@@ -244,7 +306,7 @@ def test_ipe_cai_para_o_zip_quando_o_csv_nao_existe() -> None:
         cvm.FII_REGISTRY_URL,
         cvm.statements_url(2025),
         cvm.statements_url(2025, period_type="quarterly"),
-        cvm.fca_url(2025),
+        cvm.fre_url(2025),
         cvm.fii_monthly_url(2025),
         cvm_documents.yearly_url(2025),
     ],

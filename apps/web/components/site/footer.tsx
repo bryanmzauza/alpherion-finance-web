@@ -4,6 +4,7 @@ import { Disclaimer } from "@/components/ui/disclaimer";
 import { DATA_SOURCES, EMAILS, LEGAL_ENTITY, SITE_NAME } from "@/content/site";
 
 const LEGAL_LINKS = [
+  { href: "/sobre", label: "Sobre" },
   { href: "/privacidade", label: "Privacidade" },
   { href: "/termos", label: "Termos de uso" },
   { href: "/aviso-legal", label: "Aviso legal" },

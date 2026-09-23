@@ -12,7 +12,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "lighthouse": "lhci autorun",
-    "build:migrator": "esbuild scripts/migrate.mjs --bundle --platform=node --format=esm --target=node22 --outfile=dist/migrate.mjs"
+    "build:migrator": "esbuild scripts/migrate.mjs --bundle --platform=node --format=esm --target=node22 --outfile=dist/migrate.mjs",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/mdx": "^2.0.14",
     "@types/node": "^20",

@@ -32,7 +32,6 @@ from alpherion.data.sources.http import DEFAULT_TIMEOUT, USER_AGENT, SourceError
 logger = logging.getLogger(__name__)
 
 LISTED_BASE: Final = "https://sistemaswebb3-listados.b3.com.br"
-INDICES_BASE: Final = "https://sistemaswebb3-indices.b3.com.br"
 
 #: A B3 pagina tudo; 120 é o maior tamanho que os endpoints aceitam sem erro.
 PAGE_SIZE: Final = 120
@@ -73,7 +72,13 @@ def fetch_json(url: str, *, http: httpx.Client | None = None) -> Any:
     if response.status_code != httpx.codes.OK:
         raise B3UnavailableError(f"{url}: HTTP {response.status_code}")
     try:
-        return response.json()
+        payload = response.json()
+        # Alguns endpoints (`GetListedSupplementCompany`, `GetIndustryClassification`)
+        # devolvem o JSON **codificado duas vezes**: uma string cujo conteúdo é o JSON.
+        # Lido como veio, vira um `str` e todo evento some sem erro nenhum.
+        if isinstance(payload, str) and payload.lstrip().startswith(("[", "{")):
+            payload = json.loads(payload)
+        return payload
     except ValueError as error:
         raise B3UnavailableError(f"{url}: resposta não é JSON (endpoint mudou?)") from error
 

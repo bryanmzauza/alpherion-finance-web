@@ -6,7 +6,13 @@ entre o ticker (que vem da B3) e as demonstrações (que vêm da CVM).
 **Só preenche o que a CVM sabe.** O cadastro da CVM não tem ticker, e o job nunca
 inventa um: quando não há `securities` correspondente (por CNPJ ou `cvm_code`), a
 companhia fica registrada e a página existe quando a listagem da B3 trouxer o papel.
-Papel algum é apagado aqui — cadastro que some da fonte vira `inactive`, não sumiço.
+Papel algum é apagado aqui.
+
+**O status do papel não é da CVM.** Companhia com registro ativo na CVM pode não ter
+papel negociado, e companhia com registro cancelado pode ter papel ainda listado: quem
+diz se o ticker está na bolsa é o `b3_listing`. Copiar o status daqui reativava papel
+deslistado e tirava do ar papel negociado. Pelo mesmo motivo, o nome de pregão da B3
+não é apagado quando a CVM não informa nome comercial.
 """
 
 from __future__ import annotations
@@ -14,7 +20,7 @@ from __future__ import annotations
 import logging
 from datetime import date
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from alpherion.data.jobs import base
 from alpherion.data.sources import cvm
@@ -46,9 +52,8 @@ def run() -> None:
                     cvm_code=company.cvm_code,
                     cnpj=company.cnpj or cnpj,
                     company_name=company.company_name,
-                    trade_name=company.trade_name,
+                    trade_name=func.coalesce(Security.trade_name, company.trade_name),
                     ri_url=company.ri_url,
-                    status=company.status,
                 )
             )
             atualizados += 1

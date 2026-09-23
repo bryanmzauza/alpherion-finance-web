@@ -36,6 +36,13 @@ export type SecuritySummary = {
   price: Num;
   change_percent_day: Num;
   volume: Num;
+  pe: Num;
+  pvp: Num;
+  dy_12m: Num;
+  roe: Num;
+  market_cap: Num;
+  /** Motivo de cada `null` (a trava de licença preenche). */
+  missing_reasons?: Record<string, string>;
 };
 
 export type SecurityType = "stock" | "unit" | "fii" | "fiagro" | "etf" | "bdr";
@@ -142,15 +149,21 @@ export type Financials = Block & {
   statements: Record<string, StatementLine[]>;
 };
 
+export type EventKind = "ex_date" | "payment" | "document" | "macro" | "corporate";
+
 export type MarketEvent = {
   id: string;
-  kind: "ex_date" | "payment" | "document" | "macro" | "corporate";
+  kind: EventKind;
   date: string;
   ticker: string | null;
+  /** Classe do papel; `null` em evento macro. */
+  security_type: SecurityType | null;
   title: string;
   payload: Record<string, unknown> | null;
   source: string;
 };
+
+export type EventCount = { date: string; kind: EventKind; count: number };
 
 export type StripItem = Block & {
   key: string;
@@ -162,10 +175,12 @@ export type StripItem = Block & {
 
 export type Mover = {
   ticker: string;
+  type: SecurityType | null;
   company_name: string;
   price: Num;
   change_percent: Num;
   volume: Num;
+  missing_reasons?: Record<string, string>;
 };
 
 export type MoversList = Block & {
@@ -183,6 +198,13 @@ export type SectorNode = {
   subsector: string | null;
   securities_count: number;
 };
+
+export type SectorDetail = Block &
+  SectorNode & {
+    /** Soma do valor de mercado dos papéis do setor no último pregão. */
+    market_cap: Num;
+    market_cap_count: number;
+  };
 
 export type IndexSummary = { slug: string; b3_code: string; name: string };
 
@@ -232,6 +254,24 @@ export type CryptoItem = Block & {
   volume_24h: Num;
 };
 
+export type AssetHitType = SecurityType | "index" | "treasury" | "crypto";
+
+export type AssetHit = {
+  type: AssetHitType;
+  code: string;
+  name: string;
+  price: Num;
+  change_percent: Num;
+  missing_reasons?: Record<string, string>;
+};
+
+export type AssetSearchGroup = {
+  asset_class: "stock" | "fii" | "etf" | "bdr" | "index" | "treasury" | "crypto";
+  items: AssetHit[];
+};
+
+export type AssetSearchResult = { query: string; groups: AssetSearchGroup[] };
+
 export type Page<T> = { items: T[]; total: number; page: number; page_size: number };
 
 export type MarketOverview = {
@@ -259,6 +299,7 @@ export function listSecurities(params: {
   dir?: "asc" | "desc";
   page?: number;
   page_size?: number;
+  min_volume?: number;
 }): Promise<Page<SecuritySummary>> {
   return apiFetch(`/v1/securities?${query(params)}`, { revalidate: REVALIDATE_SECONDS });
 }
@@ -301,14 +342,44 @@ export function getOverview(): Promise<MarketOverview> {
   return apiFetch("/v1/market/overview", { revalidate: 300 });
 }
 
-export function getEvents(params: { from?: string; to?: string; ticker?: string } = {}): Promise<
-  MarketEvent[]
-> {
-  return apiFetch(`/v1/market/events?${query(params)}`, { revalidate: 1800 });
+/** A agenda muda com a carga do dia; meia hora é a rede de segurança da revalidação. */
+const EVENTS_REVALIDATE = 1800;
+
+/** Teto de itens da agenda numa resposta (`repository.MAX_EVENTS` na API). */
+export const MAX_EVENTS = 500;
+
+export type EventQuery = {
+  from?: string;
+  to?: string;
+  kind?: EventKind[];
+  type?: SecurityType;
+  ticker?: string;
+  /** Categorias CVM de comunicado ("Fato Relevante"). Não filtra provento nem macro. */
+  category?: string[];
+  limit?: number;
+};
+
+export function getEvents(params: EventQuery = {}): Promise<MarketEvent[]> {
+  return apiFetch(`/v1/market/events?${query(params)}`, { revalidate: EVENTS_REVALIDATE });
+}
+
+export function getEventCounts(params: Omit<EventQuery, "ticker" | "limit">): Promise<EventCount[]> {
+  return apiFetch(`/v1/market/events/calendar?${query(params)}`, {
+    revalidate: EVENTS_REVALIDATE,
+  });
 }
 
 export function getSectors(): Promise<SectorNode[]> {
   return apiFetch("/v1/sectors", { revalidate: REVALIDATE_SECONDS });
+}
+
+export function getSector(slug: string): Promise<SectorDetail> {
+  return apiFetch(`/v1/sectors/${encodeURIComponent(slug)}`, { revalidate: REVALIDATE_SECONDS });
+}
+
+/** Busca global. Do servidor (a `/busca` e o route handler), nunca do navegador. */
+export function searchAssets(q: string, limit = 6): Promise<AssetSearchResult> {
+  return apiFetch(`/v1/assets/search?${query({ q, limit })}`, { revalidate: 300 });
 }
 
 export function getIndices(): Promise<IndexSummary[]> {
@@ -347,10 +418,15 @@ export async function optional<T>(promise: Promise<T>): Promise<T | null> {
   }
 }
 
-function query(params: Record<string, string | number | undefined>): string {
+/** Query string; lista vira parâmetro repetido (`kind=ex_date&kind=payment`). */
+export function query(params: Record<string, string | number | string[] | undefined>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") search.set(key, String(value));
+    if (Array.isArray(value)) {
+      for (const item of value) search.append(key, item);
+    } else if (value !== undefined && value !== "") {
+      search.set(key, String(value));
+    }
   }
   return search.toString();
 }

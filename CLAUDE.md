@@ -24,7 +24,7 @@ pnpm install && pnpm dev                                 # apps/web (Next.js 16,
 pnpm lint && pnpm typecheck && pnpm test && pnpm build   # raiz do workspace (typecheck roda `next typegen` antes do tsc)
 cd apps/api && uv sync                                   # cria .venv com Python 3.12
 pnpm --filter web db:generate && pnpm --filter web db:migrate   # migrations Drizzle do schema app (usuário web)
-python infra/scripts/listmonk-setup.py --smtp-mailpit    # 1ª vez: lista, usuário de API e templates do Listmonk (:9000)
+python infra/scripts/listmonk-setup.py --smtp-mailpit    # 1ª vez: lista, usuário de API e templates do Listmonk (:59000)
 cd apps/api && uv run uvicorn alpherion.main:app --reload --port 8001   # API; --reload é obrigatório no Windows (ver abaixo)
 cd apps/api && uv run alembic upgrade head               # migra o schema market (usuário `data`, DATA_DATABASE_URL)
 cd apps/api && uv run pytest tests/test_engine_golden.py -k concentration   # um teste
@@ -34,7 +34,7 @@ infra/scripts/backfill-market.sh --sample                # subconjunto do schema
 docker build -f apps/web/Dockerfile .  ·  docker build apps/api   # imagens (web usa a raiz como contexto)
 ```
 
-Particularidades da máquina do Bryan (Windows): outro projeto ocupa as portas 5432 e 8000, por isso o `.env` local usa Postgres em `5433` e a API em `8001`; usar `127.0.0.1` (não `localhost`) nas URLs do `.env`, porque o Docker só publica em IPv4; o psycopg assíncrono não roda no `ProactorEventLoop`, e o uvicorn só usa o `SelectorEventLoop` com `--reload`. `pnpm` foi instalado com `npm i -g pnpm` (o `corepack enable` exige shell de administrador); `uv` via winget.
+Particularidades da máquina do Bryan (Windows): outros projetos ocupam as portas padrão (5432, 6379, 8000, 3000…), por isso o `compose.dev.yml` publica tudo numa faixa 5xxxx — Postgres `55432`, Redis `56379`, Mailpit `58025` (UI) e `51025` (SMTP), Listmonk `59000`, Umami `53001` — configuráveis no `.env`, e a API local roda em `8001`; usar `127.0.0.1` (não `localhost`) nas URLs do `.env`, porque o Docker só publica em IPv4; o psycopg assíncrono não roda no `ProactorEventLoop`, e o uvicorn só usa o `SelectorEventLoop` com `--reload`. `pnpm` foi instalado com `npm i -g pnpm` (o `corepack enable` exige shell de administrador); `uv` via winget.
 
 ## Arquitetura (o que não dá para ver olhando um arquivo só)
 

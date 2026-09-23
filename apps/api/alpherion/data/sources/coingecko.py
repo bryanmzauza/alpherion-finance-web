@@ -66,6 +66,11 @@ def _decimal(value: Any) -> Decimal | None:
         return None
 
 
+def _percent_points(value: Any) -> Decimal | None:
+    parsed = _decimal(value)
+    return None if parsed is None else parsed / 100
+
+
 def _get(path: str, params: dict[str, Any], http: httpx.Client | None) -> Any:
     url = f"{BASE_URL}/{path.lstrip('/')}"
     check_host(url)
@@ -124,7 +129,9 @@ def _parse_market(item: Any) -> CryptoAssetRow | None:
         price=_decimal(item.get("current_price")),
         market_cap=_decimal(item.get("market_cap")),
         volume_24h=_decimal(item.get("total_volume")),
-        change_24h=_decimal(item.get("price_change_percentage_24h")),
+        # A CoinGecko manda em pontos percentuais (-1.25 = -1,25%); a coluna é `Ratio`
+        # (fração), como toda variação do produto — e é fração que o `web` formata.
+        change_24h=_percent_points(item.get("price_change_percentage_24h")),
         circulating_supply=_decimal(item.get("circulating_supply")),
         updated_at=_parse_timestamp(item.get("last_updated")),
     )

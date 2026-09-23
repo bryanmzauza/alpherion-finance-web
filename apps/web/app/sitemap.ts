@@ -4,7 +4,8 @@ import { MARKET_LINKS } from "@/lib/market-classes";
 import { siteUrl } from "@/lib/seo";
 
 // Sitemap das páginas fixas. As páginas de ativo ficam nos sitemaps por classe
-// (/sitemap/acoes.xml etc.), que o robots.txt também anuncia. /lista/* e /design ficam
+// (/sitemap/acoes.xml etc.), os setores em /sitemap/setores.xml e as semanas da agenda
+// em /sitemap/agenda.xml — todos anunciados no robots.txt. /lista/* e /design ficam
 // de fora (robots.ts).
 const BUILT_AT = new Date();
 
@@ -19,7 +20,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     page("/", 1),
     page("/raio-x", 0.9),
+    page("/mercado", 0.9),
     ...MARKET_LINKS.map((link) => page(link.href, 0.8)),
+    page("/setores", 0.7),
+    page("/agenda", 0.7),
     page("/videos", 0.8),
     page("/sobre", 0.6),
     page("/contato", 0.4),

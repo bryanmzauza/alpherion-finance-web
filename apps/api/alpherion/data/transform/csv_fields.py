@@ -74,11 +74,25 @@ class Row:
         return value[:limit] if value and limit else value
 
     def decimal(self, *names: str) -> Decimal | None:
-        """`1.234.567,89` → `Decimal("1234567.89")`. Valor inválido vira `None` com aviso."""
+        """Número em qualquer dos dois formatos que os arquivos oficiais usam.
+
+        - **Com vírgula** é pt-BR: `1.234.567,89` → `1234567.89` (Tesouro, planilhas).
+        - **Sem vírgula**, o ponto é **decimal**: `2398719197.0000000000` → `2398719197`.
+          É assim que a CVM publica DFP, ITR e informe de FII. Tratar esse ponto como
+          milhar multiplicava todo valor da CVM por 10¹⁰ — o que estourava a coluna e,
+          quando cabia, gravava número errado sem aviso.
+        - Mais de um ponto e nenhuma vírgula (`1.234.567`) só pode ser milhar.
+
+        Valor inválido vira `None` com aviso.
+        """
         raw = self.get(*names)
         if raw is None:
             return None
-        value = raw.replace(" ", "").replace(".", "").replace(",", ".")
+        value = raw.replace(" ", "")
+        if "," in value:
+            value = value.replace(".", "").replace(",", ".")
+        elif value.count(".") > 1:
+            value = value.replace(".", "")
         try:
             return Decimal(value)
         except InvalidOperation:

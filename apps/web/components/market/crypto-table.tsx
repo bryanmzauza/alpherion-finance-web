@@ -3,6 +3,7 @@ import { compactCurrency, currency, direction, signedPercent } from "@/lib/forma
 import { Table, Td, Th, Thead, Tr } from "@/components/ui/table";
 import { SourceBadge } from "@/components/market/source-badge";
 import { Value } from "@/components/market/value";
+import { cryptoAnchor } from "@/lib/asset-search";
 import { cn } from "@/lib/cn";
 
 // Criptoativos por valor de mercado.
@@ -32,7 +33,7 @@ export function CryptoTable({ assets }: { assets: CryptoItem[] }) {
         </Thead>
         <tbody>
           {assets.map((asset) => (
-            <Tr key={asset.id}>
+            <Tr key={asset.id} id={cryptoAnchor(asset.id)} className="scroll-mt-24 target:bg-navy-3">
               <Td numeric className="tabular-nums text-ice-70">
                 {asset.rank ?? "—"}
               </Td>

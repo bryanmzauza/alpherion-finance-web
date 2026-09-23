@@ -84,6 +84,40 @@ def test_extrai_os_conceitos_do_plano_de_contas() -> None:
     assert f.get("depreciation") == Decimal("50")
 
 
+#: Itaú, DFP 2025 (valores em R$ bi): plano de contas de instituição financeira.
+BANCO = [
+    _row("dre", "3.01", "Receitas da Intermediação Financeira", "387.12"),
+    _row("dre", "3.05", "Resultado Antes dos Tributos sobre o Lucro", "50.25"),
+    _row("dre", "3.09", "Lucro/Prejuízo Consolidado do Período", "45.85"),
+    _row("dre", "3.09.01", "Atribuído a Sócios da Empresa Controladora", "44.86"),
+    _row("bp_ativo", "1", "Ativo Total", "3066.17"),
+    _row("bp_ativo", "1.01", "Caixa e Equivalentes de Caixa", "37.14"),
+    _row("bp_passivo", "2.01", "Passivos Financeiros ao Valor Justo através do Resultado", "71.4"),
+    _row("bp_passivo", "2.03", "Passivos Financeiros ao Custo Amortizado", "2350.9"),
+    _row("bp_passivo", "2.08", "Patrimônio Líquido Consolidado", "215.1"),
+]
+
+
+def test_banco_acha_patrimonio_e_lucro_pelo_nome() -> None:
+    """No Itaú o PL é 2.08 e o lucro dos controladores 3.09.01 — não 2.03 nem 3.11."""
+    f = _fundamentals(BANCO)
+    assert f.get("equity") == Decimal("215.1")
+    assert f.get("net_income") == Decimal("44.86")
+
+
+def test_banco_nao_tem_circulante_nem_divida_e_diz_por_que() -> None:
+    f = _fundamentals(BANCO)
+    for conceito in ("current_liabilities", "current_assets", "cash", "debt_short", "ebit"):
+        assert f.get(conceito) is None
+        assert "instituição financeira" in f.missing[conceito]
+
+
+def test_roe_do_banco_sai_com_o_patrimonio_certo() -> None:
+    resultado = compute(_fundamentals(BANCO))
+    assert resultado.values["roe"] == pytest.approx(Decimal("44.86") / Decimal("215.1"))
+    assert resultado.values.get("current_ratio") is None
+
+
 def test_lucro_dos_controladores_vence_o_consolidado() -> None:
     """Numa holding com minoritários, o consolidado infla ROE e LPA."""
     assert _fundamentals().get("net_income") == Decimal("100")

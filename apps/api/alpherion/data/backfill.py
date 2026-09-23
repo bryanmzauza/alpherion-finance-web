@@ -35,6 +35,7 @@ from alpherion.data.jobs import (
     coingecko_prices,
     cotahist_daily,
     cvm_companies,
+    cvm_company_facts,
     cvm_documents,
     cvm_fii_reports,
     cvm_statements,
@@ -144,6 +145,7 @@ def plan(profile: Profile) -> list[Step]:
             Step(f"cvm_statements:{year}", _bind(cvm_statements.run, year=year))
             for year in statement_years
         ],
+        Step("cvm_company_facts", cvm_company_facts.run, "capital social (FRE)"),
         Step("cvm_fii_reports", cvm_fii_reports.run),
         Step(
             "cvm_documents",
@@ -165,7 +167,11 @@ def plan(profile: Profile) -> list[Step]:
         Step("b3_corporate_actions", _bind(b3_corporate_actions.run, tickers=tickers)),
         Step(
             "b3_index_composition",
-            _bind(b3_index_composition.run, slugs=list(profile.indices) or None),
+            _bind(
+                b3_index_composition.run,
+                slugs=list(profile.indices) or None,
+                years=profile.quote_years,
+            ),
         ),
     ]
 

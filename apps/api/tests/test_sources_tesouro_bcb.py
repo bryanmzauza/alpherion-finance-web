@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import httpx
@@ -81,11 +81,17 @@ def _bcb_client(payload: object, status: int = 200) -> httpx.Client:
     return httpx.Client(transport=httpx.MockTransport(handler))
 
 
+@pytest.fixture(autouse=True)
+def _sem_espera(monkeypatch: pytest.MonkeyPatch) -> None:
+    """As novas tentativas do SGS esperam segundos; nos testes, não."""
+    monkeypatch.setattr(bcb, "RETRY_DELAYS", (0.0, 0.0))
+
+
 def test_bcb_le_serie() -> None:
     client = _bcb_client(
         [{"data": "19/09/2026", "valor": "0.054"}, {"data": "22/09/2026", "valor": "0.055"}]
     )
-    points = bcb.fetch("cdi", http=client)
+    points = bcb.fetch("cdi", start=date(2026, 9, 1), end=date(2026, 9, 22), http=client)
     assert [p.date for p in points] == [date(2026, 9, 19), date(2026, 9, 22)]
     assert points[0].value == Decimal("0.054")
     assert points[0].series == "cdi"
@@ -116,6 +122,66 @@ def test_bcb_html_nao_vira_serie_vazia() -> None:
 def test_bcb_http_de_erro() -> None:
     with pytest.raises(SourceError, match="HTTP 500"):
         bcb.fetch("cdi", http=_bcb_client([], status=500))
+
+
+def test_serie_diaria_vai_em_janelas_de_ate_dez_anos() -> None:
+    """Desde 2025 o SGS responde 406 a série diária sem data ou com mais de 10 anos."""
+    pedidos: list[httpx.QueryParams] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        pedidos.append(request.url.params)
+        return httpx.Response(200, json=[])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as http:
+        bcb.fetch("cdi", end=date(2026, 9, 23), http=http)
+
+    assert len(pedidos) == 5  # 1986 → 2026 em janelas de ~10 anos
+    assert pedidos[0]["dataInicial"] == "01/01/1986"
+    assert pedidos[-1]["dataFinal"] == "23/09/2026"
+    for inicio, fim in bcb.windows(date(1986, 1, 1), date(2026, 9, 23)):
+        assert fim - inicio <= bcb.MAX_DAILY_WINDOW < timedelta(days=3650)
+
+
+def test_janela_anterior_ao_inicio_da_serie_nao_e_erro() -> None:
+    """O SGS responde 404 antes de a série existir (CDI antes de 1986, PTAX antes de 1984)."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.params["dataInicial"].endswith("1986"):
+            return httpx.Response(404, json={"erro": {"statusCode": 404}})
+        return httpx.Response(200, json=[{"data": "02/01/2026", "valor": "0.05"}])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as http:
+        points = bcb.fetch("cdi", end=date(2026, 9, 23), http=http)
+    assert len(points) == 4
+
+
+def test_serie_mensal_continua_numa_chamada_so() -> None:
+    pedidos: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        pedidos.append(str(request.url))
+        return httpx.Response(200, json=[{"data": "01/08/2026", "valor": "0.12"}])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as http:
+        bcb.fetch("ipca", http=http)
+    assert len(pedidos) == 1
+    assert "dataInicial" not in pedidos[0]
+
+
+def test_pagina_de_erro_passageira_e_tentada_de_novo() -> None:
+    """O SGS às vezes devolve HTML numa janela que responde certo segundos depois."""
+    tentativas: list[int] = []
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        tentativas.append(1)
+        if len(tentativas) == 1:
+            return httpx.Response(200, text="<html>erro</html>")
+        return httpx.Response(200, json=[{"data": "01/08/2026", "valor": "15.00"}])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as http:
+        points = bcb.fetch("ipca", http=http)
+    assert len(tentativas) == 2
+    assert len(points) == 1
 
 
 def test_codigos_do_sgs_documentados() -> None:

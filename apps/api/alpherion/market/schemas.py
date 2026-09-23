@@ -86,7 +86,12 @@ class PriceHeader(Block):
 
 
 class SecuritySummary(BaseModel):
-    """Linha de lista (`/acoes`, `/fiis`, busca) — o mínimo para identificar o papel."""
+    """Linha de lista (`/acoes`, `/fiis`, `/setores/{slug}`, busca).
+
+    Os indicadores vêm junto porque a tabela do setor os mostra lado a lado (§2.1) —
+    e porque ordenar por uma coluna que não aparece na tabela esconde do leitor o
+    critério da ordem. Todos dependem do preço e passam pela trava do ADR-017.
+    """
 
     ticker: str
     type: str
@@ -96,6 +101,13 @@ class SecuritySummary(BaseModel):
     price: Decimal | None = None
     change_percent_day: Decimal | None = None
     volume: Decimal | None = None
+    pe: Decimal | None = None
+    pvp: Decimal | None = None
+    dy_12m: Decimal | None = None
+    roe: Decimal | None = None
+    market_cap: Decimal | None = None
+    #: Motivo de cada `null` — a trava de licença preenche; a linha mostra "—" com ele.
+    missing_reasons: dict[str, str] = Field(default_factory=dict)
 
 
 class SecurityProfile(Block):
@@ -207,9 +219,25 @@ class MarketEvent(BaseModel):
     kind: str
     date: dt.date
     ticker: str | None = None
+    #: Classe do papel ("stock", "fii"…), para o filtro por classe da `/agenda`. `null`
+    #: em evento macro, que não é de papel nenhum.
+    security_type: str | None = None
     title: str
     payload: dict[str, object] | None = None
     source: str
+
+
+class EventCount(BaseModel):
+    """Quantos eventos de um tipo caem num dia — a vista mensal da agenda.
+
+    O mês inteiro passa do teto de itens de uma resposta (proventos de todo o mercado
+    mais comunicados), então a vista mensal mostra contagens e linka para a semana.
+    Contagem é fato; o que ela não faz é escolher quais itens "importam".
+    """
+
+    date: dt.date
+    kind: str
+    count: int
 
 
 class StripItem(Block):
@@ -226,10 +254,13 @@ class Mover(BaseModel):
     """Papel numa lista do dia. A métrica que ordenou vem em `MoversList.metric`."""
 
     ticker: str
+    #: Classe do papel, para o link ir direto à página certa.
+    type: str | None = None
     company_name: str
     price: Decimal | None = None
     change_percent: Decimal | None = None
     volume: Decimal | None = None
+    missing_reasons: dict[str, str] = Field(default_factory=dict)
 
 
 class MoversList(Block):
@@ -252,6 +283,26 @@ class SectorNode(BaseModel):
     subsector: str | None = None
     #: Contagem factual de papéis ativos — "23 empresas", sem adjetivo.
     securities_count: int
+
+
+class SectorDetail(Block):
+    """`/v1/sectors/{slug}`: o nó da árvore e os agregados factuais do setor.
+
+    "23 empresas, R$ 410 bi de valor de mercado somado" — soma e contagem, nunca média
+    de múltiplo nem "setor barato". O valor de mercado depende do preço e passa pela
+    trava do ADR-017 como qualquer outro.
+    """
+
+    slug: str
+    name: str
+    kind: str
+    sector: str | None = None
+    subsector: str | None = None
+    securities_count: int
+    #: Soma do valor de mercado dos papéis do setor no último pregão.
+    market_cap: Decimal | None = None
+    #: Quantos papéis entraram na soma (os que têm valor de mercado no dia).
+    market_cap_count: int = 0
 
 
 class IndexSummary(BaseModel):
@@ -343,6 +394,33 @@ class QuoteItem(Block):
     ticker: str
     price: Decimal | None = None
     date: dt.date | None = None
+
+
+class AssetHit(BaseModel):
+    """Um resultado da busca global. `href` não vem daqui: o caminho é do `web`."""
+
+    #: "stock", "unit", "fii", "fiagro", "etf", "bdr", "index", "treasury" ou "crypto".
+    type: str
+    #: Ticker, slug do índice ou do título, id do cripto.
+    code: str
+    name: str
+    price: Decimal | None = None
+    change_percent: Decimal | None = None
+    missing_reasons: dict[str, str] = Field(default_factory=dict)
+
+
+class AssetSearchGroup(BaseModel):
+    """Resultados de uma classe. A ordem dos grupos é fixa (`ASSET_CLASSES`)."""
+
+    asset_class: str
+    items: list[AssetHit]
+
+
+class AssetSearchResult(BaseModel):
+    """`/v1/assets/search`: resultado agrupado por classe (§2.3)."""
+
+    query: str
+    groups: list[AssetSearchGroup]
 
 
 class MarketOverview(BaseModel):

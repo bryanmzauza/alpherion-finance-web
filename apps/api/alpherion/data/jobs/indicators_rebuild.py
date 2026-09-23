@@ -20,7 +20,7 @@ import logging
 from datetime import date, timedelta
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from alpherion.data.jobs import base
 from alpherion.data.transform import cvm_accounts, indicators
@@ -44,8 +44,15 @@ CASH_KINDS = ("dividend", "jcp", "fii_income")
 
 
 def run(*, reference: date | None = None, tickers: list[str] | None = None) -> None:
-    today = reference or date.today()
-    with base.run(JOB, period=today) as ctx:
+    """Recalcula os indicadores **na data do último pregão carregado**.
+
+    A data é a do fechamento que entra no P/L, não a do calendário: rodando num sábado,
+    ou na manhã seguinte, o indicador continua sendo "no fechamento de sexta". É também
+    a data que as listas usam para juntar cotação e indicador — com a data do calendário
+    as duas não se encontravam e a tabela saía sem P/L nem DY.
+    """
+    with base.run(JOB, period=reference or date.today()) as ctx:
+        today = reference or _last_trading_day(ctx) or date.today()
         alvos = _tickers(ctx, only=tickers)
         rows = []
         for ticker, cvm_code, kind in alvos:
@@ -172,6 +179,10 @@ def _statements(ctx: base.JobContext, cvm_code: int) -> list[StatementRow]:
             version,
         ) in rows
     ]
+
+
+def _last_trading_day(ctx: base.JobContext) -> date | None:
+    return ctx.session.execute(select(func.max(DailyQuote.date))).scalar()
 
 
 def _last_close(ctx: base.JobContext, ticker: str) -> Decimal | None:

@@ -51,7 +51,7 @@ jobs:
           SITE_URL: http://localhost:3000
           DATABASE_URL: postgres://ci
           API_SERVICE_TOKEN_WEB: ci-placeholder-token-00000000000000000000
-      # apps/web/lighthouserc.json: sobe `pnpm start`, 3 rodadas em / e /raio-x, mediana ≥ 0,95
+      # apps/web/lighthouserc.json: sobe `pnpm start`, 3 rodadas em /, /raio-x, /acoes e /mercado, mediana ≥ 0,95
       # (performance só avisa: runner é ruidoso) e scripts ≤ 170 kB gzip (site.md §9).
       - run: pnpm --filter web lighthouse
         env:
@@ -64,6 +64,41 @@ jobs:
         with:
           name: lighthouse-reports
           path: apps/web/.lighthouseci/reports
+          retention-days: 14
+
+  e2e:
+    name: web (zero cookie e busca, Playwright)
+    runs-on: ubuntu-latest
+    needs: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm --filter web build
+        env:
+          APP_ENV: prod
+          SITE_URL: http://127.0.0.1:3100
+          DATABASE_URL: postgres://ci
+          API_SERVICE_TOKEN_WEB: ci-placeholder-token-00000000000000000000
+      # Sem API no CI: as páginas saem com "—" e a busca com o aviso de indisponível —
+      # exatamente o caso em que um cookie "de fallback" poderia escapar.
+      - run: pnpm --filter web e2e
+        env:
+          CI: "true"
+          APP_ENV: prod
+          SITE_URL: http://127.0.0.1:3100
+          DATABASE_URL: postgres://ci
+          API_SERVICE_TOKEN_WEB: ci-placeholder-token-00000000000000000000
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
           retention-days: 14
 
   api:

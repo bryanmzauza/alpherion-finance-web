@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { MARKET_CLASSES } from "@/lib/market-classes";
+import { EXTRA_SITEMAPS } from "@/lib/sitemaps";
 import { siteUrl } from "@/lib/seo";
 
 // Site público. O app (app.alpherion.com.br) recebe `Disallow: /` pelo nginx (Etapa 2.6),
@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
     // Google não está indexando.
     sitemap: [
       siteUrl("/sitemap.xml"),
-      ...MARKET_CLASSES.map((c) => siteUrl(`/sitemap/${c.slug}.xml`)),
+      ...EXTRA_SITEMAPS.map((slug) => siteUrl(`/sitemap/${slug}.xml`)),
     ],
   };
 }

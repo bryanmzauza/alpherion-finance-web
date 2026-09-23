@@ -6,7 +6,8 @@
       "url": [
         "http://localhost:3000/",
         "http://localhost:3000/raio-x",
-        "http://localhost:3000/acoes"
+        "http://localhost:3000/acoes",
+        "http://localhost:3000/mercado"
       ],
       "numberOfRuns": 3,
       "settings": {

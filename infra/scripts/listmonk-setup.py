@@ -205,7 +205,7 @@ def main() -> None:
     args = parser.parse_args()
     load_dotenv()
 
-    url = os.environ.get("LISTMONK_URL", "http://127.0.0.1:9000")
+    url = os.environ.get("LISTMONK_URL", "http://127.0.0.1:59000")
     admin = os.environ.get("LISTMONK_ADMIN_USER", "admin")
     password = os.environ.get("LISTMONK_ADMIN_PASSWORD") or sys.exit("LISTMONK_ADMIN_PASSWORD não definido")
     site_url = os.environ.get("SITE_URL", "http://localhost:3000").rstrip("/")

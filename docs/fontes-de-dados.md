@@ -35,6 +35,8 @@ Documentos (cópias em `fontes-de-dados/`):
 
 **Conclusão:** o arquivo é de download público, mas a B3 não licencia o uso comercial dele sem autorização escrita. O que o Alpherion faz (site aberto com cotação, histórico e indicadores calculados sobre preço; engine de risco; paywall na Fase 2) se enquadra em Distribuição em Atraso Snapshot (exibição) **mais** Produtizador (armazenamento de histórico e análise). Enquadramento e preço só a B3 confirma → [e-mail rascunhado](fontes-de-dados/email-b3-licenca.md). Contato: `contratacao@b3.com.br` · +55 11 2565-5080 · `produtos-marketdata@b3.com.br`.
 
+**Endereços usados** (revisados em 23/09/2026, todos sob os mesmos termos acima e o mesmo bloqueio do ADR-017): `arquivos.b3.com.br` (cadastro de instrumentos, CSV diário), `sistemaswebb3-listados.b3.com.br` (emissores, classificação setorial, eventos, carteira teórica e fechamento dos índices) e `bvmf.bmfbovespa.com.br` (COTAHIST). O host `sistemaswebb3-indices.b3.com.br`, citado antes, não existe.
+
 **O que NÃO depende da B3:** todo o schema `market` vindo da CVM (demonstrações, cadastro, comunicados, informes de FII, fundos), Tesouro, BCB e a agenda macro. Indicadores que **não** usam preço (ROE, ROIC, margens, dívida líquida/EBITDA, liquidez corrente, LPA, VPA, CAGR) podem ser publicados. Indicadores com preço (P/L, P/VP, EV/EBITDA, PSR, DY, market cap) e qualquer cotação/gráfico, não.
 
 ## CoinGecko — o que foi verificado
@@ -47,7 +49,7 @@ Página de planos da API (21/09/2026): plano **Demo** — 100 chamadas/min, 10.0
 
 - **CVM** (`dados.cvm.gov.br`): portal de dados abertos da CVM; conjuntos de cias abertas (FRE, FCA, ITR, DFP, IPE) e fundos (cadastro, informe diário e mensal). Base legal do uso livre: Lei de Acesso à Informação (12.527/2011) e Decreto 8.777/2016 (Política de Dados Abertos do Poder Executivo Federal — art. 4: dados abertos disponibilizados para "livre utilização"). O portal não exibe licença na página inicial; confirmar a licença declarada por conjunto no `dados.gov.br` na primeira carga e registrar em `data_sources`.
 - **Tesouro Transparente**: dataset "Taxas dos títulos ofertados pelo Tesouro Direto", publicador CODIP, atualização diária, licença **ODbL** declarada. CSV: `https://www.tesourotransparente.gov.br/ckan/dataset/df56aa42-484a-4a59-8184-7676580c81e3/resource/796d2059-14e9-44e3-80c9-2d9e30b405c1/download/precotaxatesourodireto.csv`.
-- **BCB SGS** (`api.bcb.gov.br/dados/serie/bcdata.sgs.{código}/dados`): dados abertos do BCB (catálogo `dadosabertos.bcb.gov.br`, licença ODbL no catálogo — confirmar na primeira carga). Códigos usados documentados em `bcb.py`.
+- **BCB SGS** (`api.bcb.gov.br/dados/serie/bcdata.sgs.{código}/dados`): dados abertos do BCB (catálogo `dadosabertos.bcb.gov.br`, licença ODbL no catálogo — confirmar na primeira carga). Códigos usados documentados em `bcb.py`. Restrição técnica (não de licença) vista em 23/09/2026: série diária exige `dataInicial`/`dataFinal` e janela de no máximo 10 anos.
 
 ## Regras derivadas (valem para o código)
 

@@ -73,10 +73,14 @@ def _last_loaded(ctx: base.JobContext) -> date:
 
 
 def _main_tickers(ctx: base.JobContext) -> dict[int, str]:
-    """Um ticker por `cvm_code` — o menor, que é o ordinário (PETR3 antes de PETR4)."""
+    """Um ticker por `cvm_code` — o menor, que é o ordinário (PETR3 antes de PETR4).
+
+    Só papel **ativo**: um código antigo que ficou no cadastro como `inactive` não pode
+    ser o ticker do comunicado de hoje.
+    """
     rows = ctx.session.execute(
         select(Security.cvm_code, func.min(Security.ticker))
-        .where(Security.cvm_code.is_not(None))
+        .where(Security.cvm_code.is_not(None), Security.status == "active")
         .group_by(Security.cvm_code)
     )
     return {code: ticker for code, ticker in rows if code is not None}
