@@ -2,7 +2,7 @@
 #   docker build -f apps/web/Dockerfile -t alpherion-web .
 # Saída standalone do Next (next.config.ts: output "standalone"), usuário não-root.
 
-FROM node:22-slim AS base
+FROM node:26-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
@@ -27,7 +27,7 @@ ENV DATABASE_URL=postgres://build APP_ENV=prod \
     APP_ENCRYPTION_KEY_V1=YnVpbGQtcGxhY2Vob2xkZXIta2V5LTAwMDAwMDAwMDA=
 RUN pnpm --filter web build && pnpm --filter web build:migrator
 
-FROM node:22-slim AS runner
+FROM node:26-slim AS runner
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
